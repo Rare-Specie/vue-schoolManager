@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { login, logout, getProfile, updatePassword, type LoginRequest, type UserProfile, type UpdatePasswordRequest } from './api/auth'
 import { ElMessage } from 'element-plus'
 import { tokenManager } from '@/utils/tokenManager'
+import { SessionRecovery } from '@/utils/sessionRecovery'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref<string>(tokenManager.getToken())
@@ -100,9 +101,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // 登出
-  const handleLogout = async () => {
+  // 若无有效 token，则跳过调用后端 logout 接口，避免在未登录场景触发额外 401 导致循环调用
+  const handleLogout = async (skipServer: boolean = false) => {
     try {
-      await logout()
+      // 只有在显式要求并且存在 token 时才调用后端注销接口
+      if (!skipServer && token.value) {
+        await logout()
+      }
     } catch (error) {
       // 忽略错误
     } finally {
@@ -188,13 +193,22 @@ export const useAuthStore = defineStore('auth', () => {
   // 页面激活时检查token
   const handlePageVisibility = async () => {
     if (document.visibilityState === 'visible') {
+      // 如果会话恢复正在进行中，跳过此检查以避免竞态
+      if (SessionRecovery.isRecoveringNow()) return
+
       // 页面变为可见时检查token
       if (token.value && !tokenManager.isValid()) {
         // Token已过期
         clearAuthState()
         if (window.location.pathname !== '/') {
           ElMessage.warning('登录已过期，请重新登录')
-          window.location.href = '/'
+          // 使用路由导航进行跳转，若失败再降级到 location.replace
+          try {
+            const router = (await import('@/router')).default
+            router.push('/')
+          } catch (e) {
+            window.location.replace('/')
+          }
         }
         return
       }

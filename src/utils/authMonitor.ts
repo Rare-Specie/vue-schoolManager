@@ -95,8 +95,13 @@ export class AuthMonitor {
   private showSessionExpired() {
     if (window.location.pathname !== '/') {
       ElMessage.warning('登录已过期，请重新登录')
-      setTimeout(() => {
-        window.location.href = '/'
+      setTimeout(async () => {
+        try {
+          const router = (await import('@/router')).default
+          router.push('/')
+        } catch (e) {
+          window.location.replace('/')
+        }
       }, 1500)
     }
   }

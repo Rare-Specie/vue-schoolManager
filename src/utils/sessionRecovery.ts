@@ -10,6 +10,7 @@ import { ElMessage } from 'element-plus'
 export class SessionRecovery {
   private static readonly STORAGE_KEY = 'app_session'
   private static readonly MAX_RECOVERY_ATTEMPTS = 3
+  private static isRecovering = false
 
   // 保存当前会话状态
   static saveSession() {
@@ -31,9 +32,19 @@ export class SessionRecovery {
 
   // 恢复会话状态
   static async restoreSession(): Promise<boolean> {
+    // 避免并发恢复
+    if (this.isRecovering) {
+      // 等待之前的恢复完成
+      const waited = await this.waitForRecovery()
+      return waited
+    }
+
+    this.isRecovering = true
     try {
       const sessionData = sessionStorage.getItem(this.STORAGE_KEY)
-      if (!sessionData) return false
+      if (!sessionData) {
+        return false
+      }
 
       const { timestamp, token, user, path, isInitialized } = JSON.parse(sessionData)
       
@@ -75,7 +86,21 @@ export class SessionRecovery {
     } catch (error) {
       console.error('恢复会话失败:', error)
       return false
+    } finally {
+      this.isRecovering = false
     }
+  }
+
+  // 等待恢复完成（最多等待timeout毫秒）
+  static async waitForRecovery(timeout: number = 5000): Promise<boolean> {
+    const start = Date.now()
+    while (this.isRecovering) {
+      if (Date.now() - start > timeout) {
+        return false
+      }
+      await new Promise((r) => setTimeout(r, 100))
+    }
+    return true
   }
 
   // 清除会话数据
@@ -102,6 +127,11 @@ export class SessionRecovery {
     }
     
     return false
+  }
+
+  // 当前是否正在恢复
+  static isRecoveringNow(): boolean {
+    return this.isRecovering
   }
 
   // 自动恢复（在应用启动时调用）

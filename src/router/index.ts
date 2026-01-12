@@ -125,6 +125,19 @@ router.beforeEach(async (to, from, next) => {
     
     // 2. 内存中无状态，尝试从localStorage/sessionStorage恢复
     if (!authStore.isInitialized) {
+      // 如果已有自动恢复在进行中，先等待其完成
+      if (SessionRecovery.isRecoveringNow()) {
+        await SessionRecovery.waitForRecovery()
+        if (authStore.isAuthenticated) {
+          if (to.path === '/') {
+            next('/main/profile')
+            return
+          }
+          next()
+          return
+        }
+      }
+
       // 首先尝试会话恢复
       if (SessionRecovery.needsRecovery()) {
         const recovered = await SessionRecovery.restoreSession()
@@ -171,6 +184,15 @@ router.beforeEach(async (to, from, next) => {
   
   // 访问登录页时，如果已登录则重定向
   if (to.path === '/' && !authStore.isAuthenticated) {
+    // 如果自动恢复正在进行中，等待其完成
+    if (SessionRecovery.isRecoveringNow()) {
+      await SessionRecovery.waitForRecovery()
+      if (authStore.isAuthenticated) {
+        next('/main/profile')
+        return
+      }
+    }
+
     // 检查是否有token可以恢复
     if (tokenManager.getToken() && !authStore.isInitialized) {
       // 有token但未初始化，尝试恢复

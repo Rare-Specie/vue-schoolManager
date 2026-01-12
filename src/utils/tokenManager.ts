@@ -187,11 +187,19 @@ export class TokenManager {
         // Token已过期，触发清理
         const authStore = useAuthStore()
         if (authStore.isAuthenticated) {
+          // 使用store清理状态，不直接强制刷新页面，避免竞态问题
           authStore.clearAuthState()
-          // 显示提示
           if (window.location.pathname !== '/') {
             ElMessage.warning('登录已过期，请重新登录')
-            window.location.href = '/'
+            // 使用路由导航进行跳转，若失败再降级到 location.replace
+            ;(async () => {
+              try {
+                const router = (await import('@/router')).default
+                router.push('/')
+              } catch (e) {
+                window.location.replace('/')
+              }
+            })()
           }
         }
       } else if (this.needsRefresh() && this.isValid()) {

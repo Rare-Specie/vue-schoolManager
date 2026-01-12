@@ -3,6 +3,17 @@ import type { AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../auth'
 
+// 防止短时间内重复弹出相同错误提示（去抖/限频）
+const _messageThrottle = new Map<string, number>()
+const showMessageOnce = (key: string, text: string, ttl = 2000) => {
+  const now = Date.now()
+  const last = _messageThrottle.get(key) || 0
+  if (now - last > ttl) {
+    _messageThrottle.set(key, now)
+    ElMessage.error(text)
+  }
+}
+
 // 创建axios实例
 const request = axios.create({
   baseURL: '/api',
@@ -56,28 +67,34 @@ request.interceptors.response.use(
       const { status, data } = response as any
       const serverMessage = data && (data.message || data.error) ? (data.message || data.error) : null
 
-      // 简化错误提示，避免过多信息
+      // 简化错误提示，避免过多信息，并使用限频展示以防止短时间内重复弹窗
       // 登录失败时只显示简洁的错误信息
       if (status === 401 && config?.url && config.url.toString().endsWith('/auth/login')) {
-        authStore.handleLogout()
-        ElMessage.error('用户名或密码错误')
+        // 登录失败（凭证错误）时，不调用后端 logout（token 不存在），仅清理本地状态以防万一
+        authStore.clearAuthState()
+        showMessageOnce('auth_login_failed', '用户名或密码错误', 3000)
+      } else if (status === 401 && config?.url && config.url.toString().endsWith('/auth/logout')) {
+        // 忽略 /auth/logout 的 401 响应，避免在注销流程中触发重复的提示或递归调用
+        authStore.clearAuthState()
+        // 不显示错误提示
       } else if (status === 401) {
+        // 其他场景的 401（例如 token 过期），尝试标准的注销流程
         authStore.handleLogout()
-        ElMessage.error('登录已过期，请重新登录')
+        showMessageOnce('auth_expired', '登录已过期，请重新登录', 5000)
       } else if (status === 400) {
-        ElMessage.error(serverMessage || '请求参数错误')
+        showMessageOnce('bad_request', serverMessage || '请求参数错误')
       } else if (status === 403) {
-        ElMessage.error(serverMessage || '没有权限访问该资源')
+        showMessageOnce('forbidden', serverMessage || '没有权限访问该资源')
       } else if (status === 404) {
-        ElMessage.error(serverMessage || '请求的资源不存在')
+        showMessageOnce('not_found', serverMessage || '请求的资源不存在')
       } else if (status === 500) {
-        ElMessage.error(serverMessage || '服务器内部错误')
+        showMessageOnce('server_error', serverMessage || '服务器内部错误')
       } else {
-        ElMessage.error(serverMessage || '请求失败，请稍后重试')
+        showMessageOnce('request_failed', serverMessage || '请求失败，请稍后重试')
       }
     } else {
-      // 网络错误，显示简洁提示
-      ElMessage.error('网络错误，请检查网络连接')
+      // 网络错误，显示简洁提示（限频）
+      showMessageOnce('network_error', '网络错误，请检查网络连接', 5000)
     }
     
     return Promise.reject(error)
