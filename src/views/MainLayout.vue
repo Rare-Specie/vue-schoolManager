@@ -457,27 +457,39 @@ watch(() => route.path, () => {
 const handleVisibilityChange = async () => {
   if (document.visibilityState === 'visible') {
     // 页面重新可见时，验证token有效性
-    const isValid = await authStore.validateToken()
-    if (!isValid) {
-      ElMessage.warning('登录已过期，请重新登录')
-      router.push('/')
+    // 避免频繁验证，添加时间间隔检查
+    const now = Date.now()
+    if (!handleVisibilityChange.lastCheck || now - handleVisibilityChange.lastCheck > 60000) {
+      handleVisibilityChange.lastCheck = now
+      const isValid = await authStore.validateToken()
+      if (!isValid) {
+        ElMessage.warning('登录已过期，请重新登录')
+        router.push('/')
+      }
     }
   }
 }
+// 静态属性记录上次检查时间
+handleVisibilityChange.lastCheck = 0
 
 // 页面挂载时初始化状态监控
 onMounted(() => {
   // 初始状态更新
   updateTokenStatus()
   
-  // 每30秒更新一次状态
-  statusTimer = setInterval(updateTokenStatus, 30 * 1000)
+  // 每30秒更新一次状态，但避免过多的定时器
+  if (!statusTimer) {
+    statusTimer = setInterval(updateTokenStatus, 30 * 1000)
+  }
   
-  // 页面可见性变化时验证token
-  if (typeof document !== 'undefined') {
+  // 页面可见性变化时验证token，避免重复添加监听器
+  if (typeof document !== 'undefined' && !handleVisibilityChange.isListenerAdded) {
     document.addEventListener('visibilitychange', handleVisibilityChange)
+    handleVisibilityChange.isListenerAdded = true
   }
 })
+// 静态属性标记监听器是否已添加
+handleVisibilityChange.isListenerAdded = false
 
 // 组件卸载时移除监听
 onUnmounted(() => {
@@ -486,8 +498,9 @@ onUnmounted(() => {
     statusTimer = null
   }
   
-  if (typeof document !== 'undefined') {
+  if (typeof document !== 'undefined' && handleVisibilityChange.isListenerAdded) {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
+    handleVisibilityChange.isListenerAdded = false
   }
 })
 </script>

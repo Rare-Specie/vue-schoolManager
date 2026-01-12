@@ -216,7 +216,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, computed, watch } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStatisticsStore } from '@/stores/statistics'
 import { ElMessage } from 'element-plus'
@@ -439,6 +439,12 @@ watch(() => [passRateChartRef.value, distributionChartRef.value], () => {
   if (distributionChart) distributionChart.resize()
 })
 
+// 处理窗口大小变化的回调函数
+const handleResize = () => {
+  if (passRateChart) passRateChart.resize()
+  if (distributionChart) distributionChart.resize()
+}
+
 onMounted(async () => {
   await loadOverview()
   await loadClassStats()
@@ -446,10 +452,22 @@ onMounted(async () => {
   await loadDistribution()
 
   // 监听窗口大小变化
-  window.addEventListener('resize', () => {
-    if (passRateChart) passRateChart.resize()
-    if (distributionChart) distributionChart.resize()
-  })
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  // 清理事件监听器
+  window.removeEventListener('resize', handleResize)
+  
+  // 清理图表实例
+  if (passRateChart) {
+    passRateChart.dispose()
+    passRateChart = null
+  }
+  if (distributionChart) {
+    distributionChart.dispose()
+    distributionChart = null
+  }
 })
 </script>
 

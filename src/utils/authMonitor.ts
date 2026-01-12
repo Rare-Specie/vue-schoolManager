@@ -29,8 +29,15 @@ export class AuthMonitor {
   private startMonitoring() {
     if (this.checkTimer) return
 
+    // 避免在登录页面启动监控
+    if (typeof window !== 'undefined' && window.location.pathname === '/') {
+      return
+    }
+
     // 每30秒检查一次登录状态
     this.checkTimer = setInterval(() => {
+      // 避免在登录页面检查
+      if (window.location.pathname === '/') return
       this.checkAuthStatus()
     }, 30 * 1000)
 
@@ -91,19 +98,37 @@ export class AuthMonitor {
     }
   }
 
+  // 静态属性标记是否正在显示过期提示
+  private static isShowingExpired = false
+
   // 显示会话过期提示
   private showSessionExpired() {
-    if (window.location.pathname !== '/') {
-      ElMessage.warning('登录已过期，请重新登录')
-      setTimeout(async () => {
-        try {
-          const router = (await import('@/router')).default
-          router.push('/')
-        } catch (e) {
-          window.location.replace('/')
+    // 避免在登录页面显示
+    if (window.location.pathname === '/') return
+    
+    // 避免重复触发
+    if (AuthMonitor.isShowingExpired) return
+    AuthMonitor.isShowingExpired = true
+    
+    ElMessage.warning('登录已过期，请重新登录')
+    
+    setTimeout(async () => {
+      try {
+        // 检查是否已经在登录页面，避免循环
+        if (window.location.pathname === '/') {
+          AuthMonitor.isShowingExpired = false
+          return
         }
-      }, 1500)
-    }
+        
+        const router = (await import('@/router')).default
+        // 使用replace而不是push，避免在历史记录中留下死循环
+        router.replace('/')
+      } catch (e) {
+        window.location.replace('/')
+      } finally {
+        AuthMonitor.isShowingExpired = false
+      }
+    }, 1500)
   }
 
   // 显示刷新警告
@@ -155,14 +180,20 @@ export class AuthMonitor {
 
 // 页面事件监听
 if (typeof window !== 'undefined') {
-  // 页面可见性变化
-  document.addEventListener('visibilitychange', AuthMonitor.handlePageActivation)
-  
-  // 页面获得焦点
-  window.addEventListener('focus', AuthMonitor.handlePageActivation)
-  
-  // 页面卸载
-  window.addEventListener('beforeunload', AuthMonitor.handlePageDeactivation)
+  // 使用any绕过类型检查，避免TypeScript错误
+  const win = window as any
+  if (!win.__authMonitorInitialized) {
+    // 页面可见性变化
+    document.addEventListener('visibilitychange', AuthMonitor.handlePageActivation)
+    
+    // 页面获得焦点
+    window.addEventListener('focus', AuthMonitor.handlePageActivation)
+    
+    // 页面卸载
+    window.addEventListener('beforeunload', AuthMonitor.handlePageDeactivation)
+    
+    win.__authMonitorInitialized = true
+  }
 }
 
 // 自动启动监控

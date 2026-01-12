@@ -276,9 +276,12 @@ const loadLogs = async () => {
 
 onMounted(() => {
   // 只有在已登录并且用户信息存在时才加载日志，避免刷新时产生不必要的请求/错误
-  if (authStore.isAuthenticated && authStore.user) {
-    loadLogs()
-  }
+  // 添加延迟，避免与页面初始化竞争
+  setTimeout(() => {
+    if (authStore.isAuthenticated && authStore.user) {
+      loadLogs()
+    }
+  }, 100)
 })
 </script>
 

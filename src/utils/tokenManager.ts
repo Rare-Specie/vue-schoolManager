@@ -108,6 +108,10 @@ export class TokenManager {
       clearInterval(this.checkTimer)
       this.checkTimer = null
     }
+    
+    // 重置单例状态，防止脏数据
+    this.token.value = ''
+    this.expiry.value = ''
   }
 
   // 设置token
@@ -179,32 +183,58 @@ export class TokenManager {
     }
   }
 
+  // 静态属性标记是否正在检查
+  private static isChecking = false
+
   // 启动周期性检查
   private startPeriodicCheck() {
-    // 每30秒检查一次token状态
+    // 每30秒检查一次token状态，但避免重复启动
+    if (this.checkTimer) {
+      clearInterval(this.checkTimer)
+    }
+    
     this.checkTimer = setInterval(() => {
-      if (this.token.value && !this.isValid()) {
-        // Token已过期，触发清理
-        const authStore = useAuthStore()
-        if (authStore.isAuthenticated) {
-          // 使用store清理状态，不直接强制刷新页面，避免竞态问题
-          authStore.clearAuthState()
-          if (window.location.pathname !== '/') {
-            ElMessage.warning('登录已过期，请重新登录')
-            // 使用路由导航进行跳转，若失败再降级到 location.replace
-            ;(async () => {
-              try {
-                const router = (await import('@/router')).default
-                router.push('/')
-              } catch (e) {
-                window.location.replace('/')
-              }
-            })()
+      // 避免在登录页面进行token检查
+      if (typeof window !== 'undefined' && window.location.pathname === '/') {
+        return // 登录页面不进行token检查
+      }
+      
+      // 避免在路由守卫运行时进行检查
+      if (TokenManager.isChecking) {
+        return
+      }
+      
+      TokenManager.isChecking = true
+      
+      try {
+        if (this.token.value && !this.isValid()) {
+          // Token已过期，触发清理
+          const authStore = useAuthStore()
+          if (authStore.isAuthenticated) {
+            // 使用store清理状态，不直接强制刷新页面，避免竞态问题
+            authStore.clearAuthState()
+            if (window.location.pathname !== '/') {
+              ElMessage.warning('登录已过期，请重新登录')
+              // 使用路由导航进行跳转，若失败再降级到 location.replace
+              ;(async () => {
+                try {
+                  const router = (await import('@/router')).default
+                  // 避免在已经登录页面时重复跳转
+                  if (window.location.pathname !== '/') {
+                    router.replace('/')
+                  }
+                } catch (e) {
+                  window.location.replace('/')
+                }
+              })()
+            }
           }
+        } else if (this.needsRefresh() && this.isValid()) {
+          // Token即将过期，尝试刷新
+          this.performRefresh()
         }
-      } else if (this.needsRefresh() && this.isValid()) {
-        // Token即将过期，尝试刷新
-        this.performRefresh()
+      } finally {
+        TokenManager.isChecking = false
       }
     }, 30 * 1000)
   }

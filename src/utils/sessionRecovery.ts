@@ -55,9 +55,20 @@ export class SessionRecovery {
         return false
       }
 
+      // 验证数据完整性
+      if (!token || typeof token !== 'string') {
+        this.clearSession()
+        return false
+      }
+
       // 如果有token但store未初始化，尝试恢复
       if (token && !isInitialized) {
         const authStore = useAuthStore()
+        
+        // 防止在已经初始化的情况下重复恢复
+        if (authStore.isInitialized) {
+          return true
+        }
         
         // 恢复token到manager
         if (tokenManager.getToken() !== token) {
@@ -70,21 +81,28 @@ export class SessionRecovery {
           tokenManager.saveUserInfo(user)
         }
         
-        // 验证token有效性
+        // 验证token有效性 - 添加超时
         try {
-          const success = await authStore.init()
+          const initPromise = authStore.init()
+          const timeoutPromise = new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('恢复超时')), 5000)
+          )
+          
+          const success = await Promise.race([initPromise, timeoutPromise])
           if (success) {
             console.log('会话恢复成功')
             return true
           }
         } catch (error) {
           console.error('会话恢复验证失败:', error)
+          this.clearSession() // 恢复失败，清除脏数据
         }
       }
 
       return false
     } catch (error) {
       console.error('恢复会话失败:', error)
+      this.clearSession() // 出错时清除会话数据
       return false
     } finally {
       this.isRecovering = false
@@ -136,6 +154,20 @@ export class SessionRecovery {
 
   // 自动恢复（在应用启动时调用）
   static async autoRecover(): Promise<boolean> {
+    // 防止在路由守卫已经处理的情况下重复恢复
+    const { useAuthStore } = await import('@/stores/auth')
+    const authStore = useAuthStore()
+    
+    // 如果已经认证，不需要恢复
+    if (authStore.isAuthenticated) {
+      return false
+    }
+    
+    // 如果已经初始化，不需要恢复
+    if (authStore.isInitialized) {
+      return false
+    }
+    
     if (!this.needsRecovery()) {
       return false
     }
@@ -157,32 +189,58 @@ export class SessionRecovery {
   }
 }
 
-// 页面加载时的自动恢复
+// 页面加载时的自动恢复 - 防止与路由守卫冲突
 if (typeof window !== 'undefined') {
-  // 页面加载完成后的恢复逻辑
-  window.addEventListener('load', async () => {
-    // 延迟执行，确保其他初始化完成
-    setTimeout(async () => {
-      await SessionRecovery.autoRecover()
-    }, 500)
-  })
+  // 避免重复添加监听器
+  const win = window as any
+  if (!win.__sessionRecoveryInitialized) {
+    // 页面加载完成后的恢复逻辑 - 仅在路由守卫未处理时执行
+    window.addEventListener('load', async () => {
+      // 延迟执行，确保其他初始化完成
+      setTimeout(async () => {
+        // 检查当前路径，避免在路由守卫已经处理的情况下重复恢复
+        const currentPath = window.location.pathname
+        if (currentPath === '/' || currentPath === '') {
+          // 只在登录页面或根路径尝试自动恢复
+          await SessionRecovery.autoRecover()
+        }
+      }, 500)
+    })
 
-  // 页面卸载前保存状态
-  window.addEventListener('beforeunload', () => {
-    SessionRecovery.saveSession()
-  })
-
-  // 页面可见性变化时保存状态
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'hidden') {
+    // 页面卸载前保存状态
+    window.addEventListener('beforeunload', () => {
       SessionRecovery.saveSession()
-    }
-  })
+    })
+
+    // 页面可见性变化时保存状态
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') {
+        SessionRecovery.saveSession()
+      }
+    })
+    
+    win.__sessionRecoveryInitialized = true
+  }
 }
 
 // 定期保存会话
+let sessionSaveTimer: ReturnType<typeof setInterval> | null = null
 export const startSessionAutoSave = () => {
-  setInterval(() => {
+  if (sessionSaveTimer) {
+    clearInterval(sessionSaveTimer)
+  }
+  
+  sessionSaveTimer = setInterval(() => {
     SessionRecovery.saveSession()
   }, 60 * 1000) // 每分钟保存一次
+}
+
+// 页面卸载时清理定时器
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    if (sessionSaveTimer) {
+      clearInterval(sessionSaveTimer)
+      sessionSaveTimer = null
+    }
+  })
 }

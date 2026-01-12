@@ -220,7 +220,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStatisticsStore } from '@/stores/statistics'
 import { useCourseStore } from '@/stores/course'
@@ -446,15 +446,33 @@ watch(() => [courseChartRef.value, distributionChartRef.value], () => {
   if (distributionChart) distributionChart.resize()
 })
 
+// 处理窗口大小变化的回调函数
+const handleResize = () => {
+  if (courseChart) courseChart.resize()
+  if (distributionChart) distributionChart.resize()
+}
+
 onMounted(async () => {
   await loadCourses()
   await loadData()
 
   // 监听窗口大小变化
-  window.addEventListener('resize', () => {
-    if (courseChart) courseChart.resize()
-    if (distributionChart) distributionChart.resize()
-  })
+  window.addEventListener('resize', handleResize)
+})
+
+onUnmounted(() => {
+  // 清理事件监听器
+  window.removeEventListener('resize', handleResize)
+  
+  // 清理图表实例
+  if (courseChart) {
+    courseChart.dispose()
+    courseChart = null
+  }
+  if (distributionChart) {
+    distributionChart.dispose()
+    distributionChart = null
+  }
 })
 </script>
 

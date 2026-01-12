@@ -28,13 +28,22 @@ request.interceptors.request.use(
   async (config) => {
     const authStore = useAuthStore()
     
-    // 检查token是否需要刷新（仅在有token且未初始化时）
-    if (authStore.token && !authStore.isInitialized) {
-      // 尝试初始化认证状态
-      await authStore.init()
+    // 避免在登录页面添加token
+    if (config.url?.includes('/auth/login')) {
+      return config
     }
     
-    // 检查token是否需要刷新
+    // 检查token是否需要刷新（仅在有token且未初始化时）
+    if (authStore.token && !authStore.isInitialized) {
+      // 尝试初始化认证状态，但避免循环调用
+      try {
+        await authStore.init()
+      } catch (e) {
+        // 初始化失败不影响当前请求
+      }
+    }
+    
+    // 检查token是否需要刷新（异步，不阻塞请求）
     if (authStore.token && authStore.isAuthenticated) {
       // 异步检查刷新，不阻塞请求
       authStore.checkTokenRefresh().catch(() => {

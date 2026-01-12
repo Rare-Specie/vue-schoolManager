@@ -23,10 +23,27 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 清除认证状态
   const clearAuthState = () => {
+    // 避免重复清理
+    if (!token.value && !user.value && !isInitialized.value) {
+      return
+    }
+    
     token.value = ''
     user.value = null
     isInitialized.value = false
+    lastRefreshTime.value = 0
+    
+    // 清理token管理器
     tokenManager.clear()
+    
+    // 清理sessionStorage中的会话数据
+    if (typeof sessionStorage !== 'undefined') {
+      try {
+        sessionStorage.removeItem('app_session')
+      } catch (e) {
+        // ignore
+      }
+    }
   }
 
   // 从localStorage恢复用户信息
@@ -38,37 +55,51 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   // 初始化 - 页面加载时恢复状态
+  let isInitializing = false // 防重入标志
+  
   const init = async (force = false) => {
+    // 防止重复初始化
+    if (isInitializing) {
+      console.log('初始化正在进行中，跳过重复调用')
+      return false
+    }
+    
     // 如果已经初始化且不是强制刷新，直接返回
     if (isInitialized.value && !force) {
       return true
     }
 
-    // 检查token是否有效
-    if (tokenManager.isValid()) {
-      try {
-        // 先尝试从localStorage恢复用户信息
-        restoreUserInfo()
-        
-        // 验证token有效性（调用后端）
-        const profile = await getProfile()
-        user.value = profile
-        token.value = tokenManager.getToken()
-        
-        // 保存用户信息到localStorage
-        tokenManager.saveUserInfo(profile)
-        
-        isInitialized.value = true
-        return true
-      } catch (error) {
-        console.error('初始化失败:', error)
+    isInitializing = true
+    
+    try {
+      // 检查token是否有效
+      if (tokenManager.isValid()) {
+        try {
+          // 先尝试从localStorage恢复用户信息
+          restoreUserInfo()
+          
+          // 验证token有效性（调用后端）
+          const profile = await getProfile()
+          user.value = profile
+          token.value = tokenManager.getToken()
+          
+          // 保存用户信息到localStorage
+          tokenManager.saveUserInfo(profile)
+          
+          isInitialized.value = true
+          return true
+        } catch (error) {
+          console.error('初始化失败:', error)
+          clearAuthState()
+          return false
+        }
+      } else {
+        // token无效，清除状态
         clearAuthState()
         return false
       }
-    } else {
-      // token无效，清除状态
-      clearAuthState()
-      return false
+    } finally {
+      isInitializing = false
     }
   }
 
@@ -196,40 +227,53 @@ export const useAuthStore = defineStore('auth', () => {
       // 如果会话恢复正在进行中，跳过此检查以避免竞态
       if (SessionRecovery.isRecoveringNow()) return
 
-      // 页面变为可见时检查token
-      if (token.value && !tokenManager.isValid()) {
-        // Token已过期
-        clearAuthState()
-        if (window.location.pathname !== '/') {
-          ElMessage.warning('登录已过期，请重新登录')
-          // 使用路由导航进行跳转，若失败再降级到 location.replace
-          try {
-            const router = (await import('@/router')).default
-            router.push('/')
-          } catch (e) {
-            window.location.replace('/')
-          }
-        }
-        return
-      }
-      
-      // Token即将过期，尝试刷新
-      if (tokenManager.needsRefresh() && tokenManager.isValid()) {
-        await checkTokenRefresh()
-      }
-      
-      // 定期刷新用户信息（每5分钟）
+      // 避免在登录页面检查
+      if (typeof window !== 'undefined' && window.location.pathname === '/') return
+
+      // 避免频繁检查，添加时间间隔
       const now = Date.now()
-      if (now - lastRefreshTime.value > 5 * 60 * 1000 && isAuthenticated.value) {
-        try {
-          await fetchProfile()
-          lastRefreshTime.value = now
-        } catch (error) {
-          // 忽略错误，不影响用户体验
+      if (!handlePageVisibility.lastCheck || now - handlePageVisibility.lastCheck > 30000) {
+        handlePageVisibility.lastCheck = now
+        
+        // 页面变为可见时检查token
+        if (token.value && !tokenManager.isValid()) {
+          // Token已过期
+          clearAuthState()
+          if (window.location.pathname !== '/') {
+            ElMessage.warning('登录已过期，请重新登录')
+            // 使用路由导航进行跳转，若失败再降级到 location.replace
+            try {
+              const router = (await import('@/router')).default
+              // 避免重复跳转
+              if (window.location.pathname !== '/') {
+                router.replace('/')
+              }
+            } catch (e) {
+              window.location.replace('/')
+            }
+          }
+          return
+        }
+        
+        // Token即将过期，尝试刷新
+        if (tokenManager.needsRefresh() && tokenManager.isValid()) {
+          await checkTokenRefresh()
+        }
+        
+        // 定期刷新用户信息（每5分钟）
+        if (now - lastRefreshTime.value > 5 * 60 * 1000 && isAuthenticated.value) {
+          try {
+            await fetchProfile()
+            lastRefreshTime.value = now
+          } catch (error) {
+            // 忽略错误，不影响用户体验
+          }
         }
       }
     }
   }
+  // 静态属性记录上次检查时间
+  handlePageVisibility.lastCheck = 0
 
   // 页面卸载时清理
   const handleBeforeUnload = () => {
