@@ -126,8 +126,14 @@ export const useStudentStore = defineStore('student', () => {
     }
   }
 
-  // 获取学生成绩概览
-  const fetchStudentGradesOverview = async (studentId: string) => {
+  // 获取学生成绩概览（参数为 studentId 即学号）
+  const fetchStudentGradesOverview = async (studentId?: string) => {
+    // 防御：若学生未绑定学号，则提前返回 null 并显示提示（符合 Gen4 的行为）
+    if (!studentId) {
+      ElMessage.warning('该学生未绑定学号，无法查看成绩概览')
+      return null
+    }
+
     try {
       const overview = await getStudentGradesOverview(studentId)
       return overview

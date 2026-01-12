@@ -228,8 +228,9 @@ const goBack = () => {
 const loadStudentDetail = async () => {
   try {
     await studentStore.fetchStudentDetail(studentId)
-    // 加载成绩概览
-    await loadGradesOverview()
+    // 加载成绩概览，使用 student 的学号（studentId 字段）而非路由 id
+    const sid = studentStore.currentStudent?.studentId
+    await loadGradesOverview(sid)
     // 加载操作日志
     await loadOperationLogs()
   } catch (error) {
@@ -238,9 +239,9 @@ const loadStudentDetail = async () => {
 }
 
 // 加载成绩概览
-const loadGradesOverview = async () => {
+const loadGradesOverview = async (sid?: string) => {
   try {
-    const overview = await studentStore.fetchStudentGradesOverview(studentId)
+    const overview = await studentStore.fetchStudentGradesOverview(sid)
     gradesOverview.value = overview
   } catch (error) {
     // 成绩数据可能不存在，不显示错误

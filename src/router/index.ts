@@ -106,6 +106,20 @@ router.beforeEach(async (to, from, next) => {
   if (requiresAuth) {
     // 1. 首先检查内存中的认证状态
     if (authStore.isAuthenticated) {
+      // 已认证但尚未初始化用户信息时，先等待 init 完成，避免进入需要用户信息的页面时出现未定义访问
+      if (!authStore.isInitialized) {
+        try {
+          await authStore.init()
+        } catch (e) {
+          console.error('初始化用户信息失败:', e)
+          // 清理状态并重定向到登录页
+          authStore.clearAuthState()
+          if (to.path !== '/') ElMessage.warning('请先登录')
+          next('/')
+          return
+        }
+      }
+
       // 已认证，检查是否需要刷新token
       try {
         await authStore.checkTokenRefresh()

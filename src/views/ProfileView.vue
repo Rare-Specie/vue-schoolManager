@@ -260,6 +260,9 @@ const goToPath = (path: string) => {
 
 // 加载操作日志
 const loadLogs = async () => {
+  // 防御：没有用户信息时不发请求
+  if (!authStore.isAuthenticated || !authStore.user) return
+
   loading.value = true
   try {
     const response = await getOperationLogs({ page: 1, limit: 10 })
@@ -272,7 +275,10 @@ const loadLogs = async () => {
 }
 
 onMounted(() => {
-  loadLogs()
+  // 只有在已登录并且用户信息存在时才加载日志，避免刷新时产生不必要的请求/错误
+  if (authStore.isAuthenticated && authStore.user) {
+    loadLogs()
+  }
 })
 </script>
 

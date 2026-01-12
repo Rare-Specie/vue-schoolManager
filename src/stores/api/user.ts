@@ -46,7 +46,21 @@ export interface BatchDeleteRequest {
 
 // 获取用户列表
 export const getUsers = (params: UserListParams = {}): Promise<UserListResponse> => {
-  return request.get('/users', { params })
+  // 兼容：后端在 Gen4 中推荐使用 X-Query-Role / X-Query-Search header 进行筛选，
+  // 但也接受 query params，这里同时支持以兼容不同实现。
+  const headers: Record<string, string> = {}
+  const queryParams: any = { ...params }
+
+  if (params.role) {
+    headers['X-Query-Role'] = params.role
+    delete queryParams.role
+  }
+  if (params.search) {
+    headers['X-Query-Search'] = params.search
+    delete queryParams.search
+  }
+
+  return request.get('/users', { params: queryParams, headers })
 }
 
 // 创建用户

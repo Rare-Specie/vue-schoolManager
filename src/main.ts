@@ -17,6 +17,30 @@ app.use(pinia)
 app.use(router)
 app.use(ElementPlus)
 
+// 全局错误处理，避免未捕获异常导致白屏
+import { ElMessage } from 'element-plus'
+app.config.errorHandler = (err, vm, info) => {
+  // 打印到控制台供调试
+  // eslint-disable-next-line no-console
+  console.error('全局错误捕获:', err, info)
+  try {
+    ElMessage.error('发生错误，正在恢复或请刷新页面')
+  } catch (e) {
+    // ignore
+  }
+}
+
+// 捕获未处理的 promise rejection
+window.addEventListener('unhandledrejection', (event) => {
+  // eslint-disable-next-line no-console
+  console.error('未处理的 promise rejection:', event.reason)
+  try {
+    ElMessage.error('发生网络或运行错误，请检查控制台')
+  } catch (e) {
+    // ignore
+  }
+})
+
 // 注册所有Element Plus图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
