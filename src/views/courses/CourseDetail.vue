@@ -249,7 +249,7 @@ const loadCourseDetail = async () => {
 // 加载选课学生
 const loadCourseStudents = async () => {
   try {
-    await courseStore.fetchCourseStudents(courseId)
+    await courseStore.fetchCourseStudents(courseId, 1000)
   } catch (error) {
     // 学生数据可能不存在，不显示错误
   }

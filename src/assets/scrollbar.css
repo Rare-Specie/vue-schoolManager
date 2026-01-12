@@ -1,0 +1,185 @@
+/* 
+ * 现代化滚动条样式 - Vue3风格
+ * 统一整个应用的滚动条外观
+ * 移除白色背景，采用透明化设计
+ */
+
+/* 基础滚动条样式 - Webkit 浏览器 (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent; /* 移除轨道背景 */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5); /* 半透明灰色 */
+  border-radius: 4px;
+  transition: background 0.3s ease, transform 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3); /* 微妙的边框 */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7); /* 悬停时加深 */
+  transform: scale(1.1);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(75, 85, 99, 0.8); /* 激活时更深 */
+  transform: scale(1.05);
+}
+
+/* Firefox 浏览器 */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent; /* 透明轨道 */
+}
+
+/* 针对不同区域的滚动条优化 - 透明化设计 */
+
+/* 侧边栏菜单 - 深色背景 */
+.aside::-webkit-scrollbar-thumb,
+.el-menu::-webkit-scrollbar-thumb {
+  background: rgba(74, 85, 104, 0.6); /* 深色半透明 */
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.aside::-webkit-scrollbar-thumb:hover,
+.el-menu::-webkit-scrollbar-thumb:hover {
+  background: rgba(45, 55, 72, 0.8);
+}
+
+/* 主内容区域 - 浅色背景 */
+.main-content::-webkit-scrollbar-thumb,
+.profile-container::-webkit-scrollbar-thumb,
+.grade-query-container::-webkit-scrollbar-thumb {
+  background: rgba(160, 174, 192, 0.5); /* 中等半透明 */
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.main-content::-webkit-scrollbar-thumb:hover,
+.profile-container::-webkit-scrollbar-thumb:hover,
+.grade-query-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(113, 128, 150, 0.7);
+}
+
+/* 对话框和弹窗内容 */
+.el-dialog__body::-webkit-scrollbar-thumb,
+.el-drawer__body::-webkit-scrollbar-thumb {
+  background: rgba(160, 174, 192, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+}
+
+.el-dialog__body::-webkit-scrollbar-thumb:hover,
+.el-drawer__body::-webkit-scrollbar-thumb:hover {
+  background: rgba(113, 128, 150, 0.7);
+}
+
+/* 表格区域 */
+.el-table__body-wrapper::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.el-table__body-wrapper::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
+}
+
+/* 表单和输入框区域 */
+.el-form::-webkit-scrollbar-thumb,
+.el-select-dropdown__list::-webkit-scrollbar-thumb {
+  background: rgba(229, 231, 235, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+.el-form::-webkit-scrollbar-thumb:hover,
+.el-select-dropdown__list::-webkit-scrollbar-thumb:hover {
+  background: rgba(209, 213, 219, 0.6);
+}
+
+/* 细滚动条 - 用于空间受限的区域 */
+.fine-scrollbar::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+.fine-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.4);
+  border-radius: 2px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.fine-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6);
+}
+
+/* 移动端优化 */
+@media screen and (max-width: 768px) {
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.3);
+    border-radius: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(107, 114, 128, 0.5);
+  }
+}
+
+/* 暗色模式支持 */
+@media (prefers-color-scheme: dark) {
+  ::-webkit-scrollbar-track {
+    background: transparent; /* 暗色模式也透明 */
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: rgba(74, 85, 104, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(113, 128, 150, 0.8);
+  }
+  
+  * {
+    scrollbar-color: rgba(74, 85, 104, 0.6) transparent;
+  }
+}
+
+/* 自定义滚动条动画效果 */
+@keyframes scrollThumbPulse {
+  0% {
+    opacity: 0.7;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.7;
+  }
+}
+
+/* 活动状态的滚动条 */
+.active-scrollbar::-webkit-scrollbar-thumb {
+  animation: scrollThumbPulse 2s ease-in-out infinite;
+}
+
+/* 高对比度模式支持 */
+@media (prefers-contrast: high) {
+  ::-webkit-scrollbar-thumb {
+    background: rgba(0, 0, 0, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.8);
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(0, 0, 0, 1);
+  }
+}

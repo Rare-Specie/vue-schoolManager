@@ -12,14 +12,7 @@
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col :span="12">
-            <el-form-item label="学期">
-              <el-input
-                v-model="selectForm.semester"
-                placeholder="如：2024-2025学年第一学期"
-              />
-            </el-form-item>
-          </el-col>
+
         </el-row>
 
         <el-row :gutter="20" v-if="selectForm.mode === 'student'">
@@ -100,7 +93,6 @@
               <p><strong>学号：</strong>{{ student.studentId }}</p>
               <p><strong>姓名：</strong>{{ student.name }}</p>
               <p><strong>班级：</strong>{{ student.class }}</p>
-              <p><strong>学期：</strong>{{ selectForm.semester || '全部' }}</p>
             </div>
             
             <table class="grade-table">
@@ -152,7 +144,6 @@
             <h2>班级成绩单</h2>
             <div class="student-info">
               <p><strong>班级：</strong>{{ selectForm.class }}</p>
-              <p><strong>学期：</strong>{{ selectForm.semester || '全部' }}</p>
               <p><strong>总人数：</strong>{{ previewData.length }}</p>
             </div>
 
@@ -163,7 +154,6 @@
                   <th>姓名</th>
                   <th>课程</th>
                   <th>成绩</th>
-                  <th>学期</th>
                 </tr>
               </thead>
               <tbody>
@@ -176,7 +166,6 @@
                       {{ item.score }}
                     </strong>
                   </td>
-                  <td>{{ item.semester || '-' }}</td>
                 </tr>
               </tbody>
             </table>
@@ -222,9 +211,7 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="学期">
-          <el-input v-model="batchDialog.form.semester" placeholder="学期（可选）" />
-        </el-form-item>
+
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -252,8 +239,7 @@ const studentStore = useStudentStore()
 const selectForm = reactive({
   mode: 'student' as 'student' | 'class',
   studentId: '',
-  class: '',
-  semester: ''
+  class: ''
 })
 
 // 预览数据
@@ -268,8 +254,7 @@ const batchDialog = ref({
   form: {
     type: 'class' as 'class' | 'student',
     classes: '',
-    students: [] as string[],
-    semester: ''
+    students: [] as string[]
   }
 })
 
@@ -297,9 +282,6 @@ const generateReport = async () => {
   }
   if (selectForm.mode === 'class' && selectForm.class) {
     params.class = selectForm.class
-  }
-  if (selectForm.semester) {
-    params.semester = selectForm.semester
   }
 
 
@@ -349,12 +331,11 @@ const previewReport = async () => {
     }]
   } else {
     // 模拟班级成绩单
-    const semester = selectForm.semester || '2024-2025学年第一学期'
     previewData.value = [
-      { studentId: '2024001', studentName: '张三', courseName: '程序设计基础', score: 85, semester },
-      { studentId: '2024001', studentName: '张三', courseName: '数据结构', score: 92, semester },
-      { studentId: '2024002', studentName: '李四', courseName: '程序设计基础', score: 76, semester },
-      { studentId: '2024002', studentName: '李四', courseName: '数据结构', score: 88, semester }
+      { studentId: '2024001', studentName: '张三', courseName: '程序设计基础', score: 85 },
+      { studentId: '2024001', studentName: '张三', courseName: '数据结构', score: 92 },
+      { studentId: '2024002', studentName: '李四', courseName: '程序设计基础', score: 76 },
+      { studentId: '2024002', studentName: '李四', courseName: '数据结构', score: 88 }
     ]
   }
 
@@ -403,7 +384,6 @@ const closePreview = () => {
 const resetForm = () => {
   selectForm.studentId = ''
   selectForm.class = ''
-  selectForm.semester = ''
   previewData.value = []
 }
 
@@ -436,10 +416,7 @@ const executeBatchPrint = async () => {
 
     const params = {
       type: form.type,
-      items: items.map(item => ({
-        id: item,
-        semester: form.semester || undefined
-      })).filter(item => item.id) // 过滤掉空ID
+      items: items
     }
 
 
@@ -598,5 +575,38 @@ onMounted(() => {
   .report-section {
     page-break-inside: avoid;
   }
+}
+
+/* 现代化滚动条样式 - Vue3风格 */
+/* Webkit 浏览器 (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(75, 85, 99, 0.8);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 </style>

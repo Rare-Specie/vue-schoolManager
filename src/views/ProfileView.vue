@@ -2,7 +2,7 @@
   <div class="profile-container">
     <el-row :gutter="20">
       <!-- 个人信息卡片 -->
-      <el-col :span="12">
+      <el-col :span="12" class="profile-col">
         <el-card class="box-card">
           <template #header>
             <div class="card-header">
@@ -43,13 +43,18 @@
       </el-col>
 
       <!-- 快捷操作卡片 -->
-      <el-col :span="12">
+      <el-col :span="12" class="profile-col">
         <el-card class="box-card">
           <template #header>
             <div class="card-header">
               <span>快捷操作</span>
             </div>
           </template>
+          <div class="time-slogan">
+            <div class="time">{{ currentTime }}</div>
+            <div class="date">{{ currentDate }}</div>
+            <div class="slogan" @click="currentSlogan = pickRandomSlogan()">{{ currentSlogan }}</div>
+          </div>
           <div class="quick-actions">
             <el-button 
               v-for="action in quickActions" 
@@ -133,7 +138,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue' 
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getOperationLogs } from '@/stores/api/auth'
@@ -145,6 +150,36 @@ const authStore = useAuthStore()
 
 const logs = ref<any[]>([])
 const loading = ref(false)
+
+// 时间与标语（保存在 localStorage，每次随机显示）
+const currentDate = ref(formatDate(new Date()))
+const currentTime = ref(formatTime(new Date()))
+const slogans = ref<string[]>([])
+const currentSlogan = ref('')
+let timer: number | undefined
+
+function formatDate(date: Date) {
+  const y = date.getFullYear()
+  const m = String(date.getMonth() + 1).padStart(2, '0')
+  const d = String(date.getDate()).padStart(2, '0')
+  const weekdayMap = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六']
+  const weekday = weekdayMap[date.getDay()]
+  return `${y}-${m}-${d} ${weekday}`
+}
+
+function formatTime(date: Date) {
+  const hh = String(date.getHours()).padStart(2, '0')
+  const mm = String(date.getMinutes()).padStart(2, '0')
+  const ss = String(date.getSeconds()).padStart(2, '0')
+  return `${hh}:${mm}:${ss}`
+}
+
+function pickRandomSlogan() {
+  if (slogans.value.length === 0) return ''
+  const s = slogans.value[Math.floor(Math.random() * slogans.value.length)]
+  return s ?? ''
+} 
+
 
 // 角色文本
 const roleText = computed(() => {
@@ -275,6 +310,38 @@ const loadLogs = async () => {
 }
 
 onMounted(() => {
+  // 初始化标语（保存在 localStorage）
+  const key = 'profileSlogans'
+  const stored = localStorage.getItem(key)
+  if (stored) {
+    try {
+      slogans.value = JSON.parse(stored)
+    } catch (e) {
+      slogans.value = []
+    }
+  }
+  if (slogans.value.length === 0) {
+    slogans.value = [
+      '今日学习，明日成才。',
+      '保持好奇，持续进步。',
+      '每一步都算数，努力可见。',
+      '小目标，天天达成。',
+      '学习如逆水行舟，不进则退。',
+      '持续积累，成就未来。',
+      '勇于尝试，善于反思。',
+      '做事有计划，成效更明显。'
+    ]
+    localStorage.setItem(key, JSON.stringify(slogans.value))
+  }
+  currentSlogan.value = pickRandomSlogan()
+
+  // 更新时间与日期
+  timer = window.setInterval(() => {
+    const now = new Date()
+    currentTime.value = formatTime(now)
+    currentDate.value = formatDate(now)
+  }, 1000)
+
   // 只有在已登录并且用户信息存在时才加载日志，避免刷新时产生不必要的请求/错误
   // 添加延迟，避免与页面初始化竞争
   setTimeout(() => {
@@ -282,6 +349,10 @@ onMounted(() => {
       loadLogs()
     }
   }, 100)
+})
+
+onUnmounted(() => {
+  if (timer) clearInterval(timer)
 })
 </script>
 
@@ -362,5 +433,83 @@ onMounted(() => {
   display: flex;
   justify-content: flex-end;
   gap: 8px;
+}
+
+/* 使左右两列高度一致 */
+.profile-col {
+  display: flex;
+}
+.profile-col .box-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.profile-info {
+  flex: 1;
+}
+.quick-actions {
+  flex: 1;
+}
+
+/* 日期与标语样式 */
+.time-slogan {
+  padding: 20px 16px;
+  border-bottom: 1px dashed #eaeaea;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 36px;
+}
+.time-slogan .time {
+  font-size: 60px; /* 时间 40px */
+  font-weight: 700;
+  color: #333;
+  line-height: 1;
+}
+.time-slogan .date {
+  font-size: 20px; /* 日期 36px */
+  color: #666;
+  line-height: 1;
+}
+.time-slogan .slogan {
+  font-size: 20px; /* 标语 30px */
+  color: #666;
+  text-align: center;
+  cursor: pointer;
+  line-height: 1.2;
+  opacity: 0.95;
+}
+
+/* 现代化滚动条样式 - Vue3风格 */
+/* Webkit 浏览器 (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(75, 85, 99, 0.8);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 </style>

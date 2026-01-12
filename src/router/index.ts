@@ -23,79 +23,93 @@ const router = createRouter({
         {
           path: 'profile',
           name: 'profile',
-          component: () => import('@/views/ProfileView.vue')
+          component: () => import('@/views/ProfileView.vue'),
+          meta: { title: '个人中心' }
         },
         // 学生信息管理
         {
           path: 'students',
           name: 'student-list',
-          component: () => import('@/views/students/StudentList.vue')
+          component: () => import('@/views/students/StudentList.vue'),
+          meta: { title: '学生列表' }
         },
         {
           path: 'students/enrollment',
           name: 'student-enrollment',
-          component: () => import('@/views/students/EnrollmentManagement.vue')
+          component: () => import('@/views/students/EnrollmentManagement.vue'),
+          meta: { title: '选课管理' }
         },
         {
           path: 'students/:id',
           name: 'student-detail',
-          component: () => import('@/views/students/StudentDetail.vue')
+          component: () => import('@/views/students/StudentDetail.vue'),
+          meta: { title: '学生详情' }
         },
         // 课程管理
         {
           path: 'courses',
           name: 'course-list',
-          component: () => import('@/views/courses/CourseList.vue')
+          component: () => import('@/views/courses/CourseList.vue'),
+          meta: { title: '课程列表' }
         },
         {
           path: 'courses/:id',
           name: 'course-detail',
-          component: () => import('@/views/courses/CourseDetail.vue')
+          component: () => import('@/views/courses/CourseDetail.vue'),
+          meta: { title: '课程详情' }
         },
         // 成绩管理
         {
           path: 'grades/input',
           name: 'grade-input',
-          component: () => import('@/views/grades/GradeInput.vue')
+          component: () => import('@/views/grades/GradeInput.vue'),
+          meta: { title: '成绩录入' }
         },
         {
           path: 'grades/query',
           name: 'grade-query',
-          component: () => import('@/views/grades/GradeQuery.vue')
+          component: () => import('@/views/grades/GradeQuery.vue'),
+          meta: { title: '成绩查询' }
         },
         // 统计分析
         {
           path: 'statistics/overview',
           name: 'statistics-overview',
-          component: () => import('@/views/statistics/StatisticsOverview.vue')
+          component: () => import('@/views/statistics/StatisticsOverview.vue'),
+          meta: { title: '统计概览' }
         },
         {
           path: 'statistics/detail',
           name: 'statistics-detail',
-          component: () => import('@/views/statistics/DetailedStatistics.vue')
+          component: () => import('@/views/statistics/DetailedStatistics.vue'),
+          meta: { title: '详细统计' }
         },
         // 报表与打印
         {
           path: 'reports/report-card',
           name: 'report-card',
-          component: () => import('@/views/reports/ReportCard.vue')
+          component: () => import('@/views/reports/ReportCard.vue'),
+          meta: { title: '成绩单' }
         },
         {
           path: 'reports/statistics',
           name: 'statistical-reports',
-          component: () => import('@/views/reports/StatisticalReports.vue')
+          component: () => import('@/views/reports/StatisticalReports.vue'),
+          meta: { title: '统计报表' }
         },
         // 用户管理（管理员）
         {
           path: 'admin/users',
           name: 'user-management',
-          component: () => import('@/views/admin/UserManagement.vue')
+          component: () => import('@/views/admin/UserManagement.vue'),
+          meta: { title: '用户管理' }
         },
         // 系统管理（管理员）
         {
           path: 'admin/system',
           name: 'system-management',
-          component: () => import('@/views/admin/SystemManagement.vue')
+          component: () => import('@/views/admin/SystemManagement.vue'),
+          meta: { title: '系统管理' }
         }
       ]
     }

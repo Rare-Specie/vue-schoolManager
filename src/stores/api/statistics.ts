@@ -68,7 +68,6 @@ export interface ReportParams {
   class?: string
   courseId?: string
   studentId?: string
-  semester?: string
 }
 
 // 获取统计概览

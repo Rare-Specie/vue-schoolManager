@@ -22,14 +22,7 @@
               </el-radio-group>
             </el-form-item>
           </el-col>
-          <el-col :span="8">
-            <el-form-item label="学期">
-              <el-input
-                v-model="selectForm.semester"
-                placeholder="学期（可选）"
-              />
-            </el-form-item>
-          </el-col>
+
         </el-row>
 
         <el-row :gutter="20">
@@ -128,7 +121,6 @@
           <h2>{{ getReportTitle() }}</h2>
           <div class="report-info">
             <p><strong>生成时间：</strong>{{ new Date().toLocaleString('zh-CN') }}</p>
-            <p v-if="selectForm.semester"><strong>学期：</strong>{{ selectForm.semester }}</p>
             <p v-if="selectForm.class"><strong>班级：</strong>{{ selectForm.class }}</p>
             <p v-if="selectForm.courseId"><strong>课程：</strong>{{ getCourseName(selectForm.courseId) }}</p>
             <p v-if="selectForm.studentId"><strong>学生：</strong>{{ getStudentName(selectForm.studentId) }}</p>
@@ -312,7 +304,6 @@ const selectForm = reactive({
   class: '',
   courseId: '',
   studentId: '',
-  semester: '',
   timeRange: [] as string[]
 })
 
@@ -383,7 +374,6 @@ const generateReport = async () => {
   if (selectForm.class) params.class = selectForm.class
   if (selectForm.courseId) params.courseId = selectForm.courseId
   if (selectForm.studentId) params.studentId = selectForm.studentId
-  if (selectForm.semester) params.semester = selectForm.semester
   
   // 时间范围处理 - 只有当有值时才添加
   if (selectForm.timeRange && selectForm.timeRange.length === 2) {
@@ -496,7 +486,6 @@ const resetForm = () => {
   selectForm.class = ''
   selectForm.courseId = ''
   selectForm.studentId = ''
-  selectForm.semester = ''
   selectForm.timeRange = []
   previewData.value = []
   distributionData.value = []

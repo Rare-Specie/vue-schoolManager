@@ -1,0 +1,458 @@
+[
+  {
+    "studentId": "2024001",
+    "name": "张三",
+    "class": "计算机2401",
+    "gender": "male",
+    "phone": "13800138000",
+    "email": "zhangsan@example.com"
+  },
+  {
+    "studentId": "2024002",
+    "name": "李四",
+    "class": "计算机2401",
+    "gender": "female",
+    "phone": "13800138001",
+    "email": "lisi@example.com"
+  },
+  {
+    "studentId": "2024003",
+    "name": "王五",
+    "class": "计算机2401",
+    "gender": "male",
+    "phone": "13800138002",
+    "email": "wangwu@example.com"
+  },
+  {
+    "studentId": "2024004",
+    "name": "赵六",
+    "class": "计算机2401",
+    "gender": "female",
+    "phone": "13800138003",
+    "email": "zhaoliu@example.com"
+  },
+  {
+    "studentId": "2024005",
+    "name": "孙七",
+    "class": "计算机2401",
+    "gender": "male",
+    "phone": "13800138004",
+    "email": "sunqi@example.com"
+  },
+  {
+    "studentId": "2024006",
+    "name": "周八",
+    "class": "计算机2401",
+    "gender": "female",
+    "phone": "13800138005",
+    "email": "zhouba@example.com"
+  },
+  {
+    "studentId": "2024007",
+    "name": "吴九",
+    "class": "计算机2401",
+    "gender": "male",
+    "phone": "13800138006",
+    "email": "wujiu@example.com"
+  },
+  {
+    "studentId": "2024008",
+    "name": "郑十",
+    "class": "计算机2401",
+    "gender": "female",
+    "phone": "13800138007",
+    "email": "zhengshi@example.com"
+  },
+  {
+    "studentId": "2024009",
+    "name": "钱一",
+    "class": "计算机2402",
+    "gender": "male",
+    "phone": "13800138008",
+    "email": "qianyi@example.com"
+  },
+  {
+    "studentId": "2024010",
+    "name": "孙二",
+    "class": "计算机2402",
+    "gender": "female",
+    "phone": "13800138009",
+    "email": "suner@example.com"
+  },
+  {
+    "studentId": "2024011",
+    "name": "周明",
+    "class": "计算机2402",
+    "gender": "male",
+    "phone": "13800138010",
+    "email": "zhouming@example.com"
+  },
+  {
+    "studentId": "2024012",
+    "name": "吴芳",
+    "class": "计算机2402",
+    "gender": "female",
+    "phone": "13800138011",
+    "email": "wufang@example.com"
+  },
+  {
+    "studentId": "2024013",
+    "name": "郑涛",
+    "class": "计算机2402",
+    "gender": "male",
+    "phone": "13800138012",
+    "email": "zhengtao@example.com"
+  },
+  {
+    "studentId": "2024014",
+    "name": "王艳",
+    "class": "计算机2402",
+    "gender": "female",
+    "phone": "13800138013",
+    "email": "wangyan@example.com"
+  },
+  {
+    "studentId": "2024015",
+    "name": "李明",
+    "class": "医学影像2401",
+    "gender": "male",
+    "phone": "13800138014",
+    "email": "liming@example.com"
+  },
+  {
+    "studentId": "2024016",
+    "name": "张丽",
+    "class": "医学影像2401",
+    "gender": "female",
+    "phone": "13800138015",
+    "email": "zhangli@example.com"
+  },
+  {
+    "studentId": "2024017",
+    "name": "刘强",
+    "class": "医学影像2401",
+    "gender": "male",
+    "phone": "13800138016",
+    "email": "liuqiang@example.com"
+  },
+  {
+    "studentId": "2024018",
+    "name": "陈红",
+    "class": "医学影像2401",
+    "gender": "female",
+    "phone": "13800138017",
+    "email": "chenhong@example.com"
+  },
+  {
+    "studentId": "2024019",
+    "name": "黄杰",
+    "class": "医学影像2401",
+    "gender": "male",
+    "phone": "13800138018",
+    "email": "huangjie@example.com"
+  },
+  {
+    "studentId": "2024020",
+    "name": "赵娜",
+    "class": "医学影像2401",
+    "gender": "female",
+    "phone": "13800138019",
+    "email": "zhaona@example.com"
+  },
+  {
+    "studentId": "2024021",
+    "name": "马军",
+    "class": "医学影像2401",
+    "gender": "male",
+    "phone": "13800138020",
+    "email": "majun@example.com"
+  },
+  {
+    "studentId": "2024022",
+    "name": "高敏",
+    "class": "医学影像2401",
+    "gender": "female",
+    "phone": "13800138021",
+    "email": "gaomin@example.com"
+  },
+  {
+    "studentId": "2024023",
+    "name": "林浩",
+    "class": "医学影像2402",
+    "gender": "male",
+    "phone": "13800138022",
+    "email": "linhao@example.com"
+  },
+  {
+    "studentId": "2024024",
+    "name": "田甜",
+    "class": "医学影像2402",
+    "gender": "female",
+    "phone": "13800138023",
+    "email": "tiantian@example.com"
+  },
+  {
+    "studentId": "2024025",
+    "name": "朱伟",
+    "class": "医学影像2402",
+    "gender": "male",
+    "phone": "13800138024",
+    "email": "zhuwei@example.com"
+  },
+  {
+    "studentId": "2024026",
+    "name": "胡蝶",
+    "class": "医学影像2402",
+    "gender": "female",
+    "phone": "13800138025",
+    "email": "hudie@example.com"
+  },
+  {
+    "studentId": "2024027",
+    "name": "郭峰",
+    "class": "医学影像2402",
+    "gender": "male",
+    "phone": "13800138026",
+    "email": "guofeng@example.com"
+  },
+  {
+    "studentId": "2024028",
+    "name": "何丽",
+    "class": "医学影像2402",
+    "gender": "female",
+    "phone": "13800138027",
+    "email": "heli@example.com"
+  },
+  {
+    "studentId": "2024029",
+    "name": "罗阳",
+    "class": "计算机2401",
+    "gender": "male",
+    "phone": "13800138028",
+    "email": "luoyang@example.com"
+  },
+  {
+    "studentId": "2024030",
+    "name": "宋佳",
+    "class": "计算机2401",
+    "gender": "female",
+    "phone": "13800138029",
+    "email": "songjia@example.com"
+  },
+  {
+    "studentId": "2024031",
+    "name": "唐磊",
+    "class": "计算机2401",
+    "gender": "male",
+    "phone": "13800138030",
+    "email": "tanglei@example.com"
+  },
+  {
+    "studentId": "2024032",
+    "name": "韩雪",
+    "class": "计算机2401",
+    "gender": "female",
+    "phone": "13800138031",
+    "email": "hanxue@example.com"
+  },
+  {
+    "studentId": "2024033",
+    "name": "冯刚",
+    "class": "计算机2402",
+    "gender": "male",
+    "phone": "13800138032",
+    "email": "fenggang@example.com"
+  },
+  {
+    "studentId": "2024034",
+    "name": "曹颖",
+    "class": "计算机2402",
+    "gender": "female",
+    "phone": "13800138033",
+    "email": "caoying@example.com"
+  },
+  {
+    "studentId": "2024035",
+    "name": "彭飞",
+    "class": "计算机2402",
+    "gender": "male",
+    "phone": "13800138034",
+    "email": "pengfei@example.com"
+  },
+  {
+    "studentId": "2024036",
+    "name": "曾静",
+    "class": "计算机2402",
+    "gender": "female",
+    "phone": "13800138035",
+    "email": "zengjing@example.com"
+  },
+  {
+    "studentId": "2024037",
+    "name": "肖亮",
+    "class": "医学影像2401",
+    "gender": "male",
+    "phone": "13800138036",
+    "email": "xiaoliang@example.com"
+  },
+  {
+    "studentId": "2024038",
+    "name": "温雅",
+    "class": "医学影像2401",
+    "gender": "female",
+    "phone": "13800138037",
+    "email": "wenya@example.com"
+  },
+  {
+    "studentId": "2024039",
+    "name": "蔡明",
+    "class": "医学影像2401",
+    "gender": "male",
+    "phone": "13800138038",
+    "email": "caiming@example.com"
+  },
+  {
+    "studentId": "2024040",
+    "name": "袁莉",
+    "class": "医学影像2401",
+    "gender": "female",
+    "phone": "13800138039",
+    "email": "yuanli@example.com"
+  },
+  {
+    "studentId": "2024041",
+    "name": "于波",
+    "class": "医学影像2402",
+    "gender": "male",
+    "phone": "13800138040",
+    "email": "yubo@example.com"
+  },
+  {
+    "studentId": "2024042",
+    "name": "董晴",
+    "class": "医学影像2402",
+    "gender": "female",
+    "phone": "13800138041",
+    "email": "dongqing@example.com"
+  },
+  {
+    "studentId": "2024043",
+    "name": "杜伟",
+    "class": "医学影像2402",
+    "gender": "male",
+    "phone": "13800138042",
+    "email": "duwei@example.com"
+  },
+  {
+    "studentId": "2024044",
+    "name": "蒋欣",
+    "class": "医学影像2402",
+    "gender": "female",
+    "phone": "13800138043",
+    "email": "jiangxin@example.com"
+  },
+  {
+    "studentId": "2024045",
+    "name": "沈浩",
+    "class": "计算机2401",
+    "gender": "male",
+    "phone": "13800138044",
+    "email": "shenhao@example.com"
+  },
+  {
+    "studentId": "2024046",
+    "name": "程琳",
+    "class": "计算机2401",
+    "gender": "female",
+    "phone": "13800138045",
+    "email": "chenglin@example.com"
+  },
+  {
+    "studentId": "2024047",
+    "name": "陆凯",
+    "class": "计算机2402",
+    "gender": "male",
+    "phone": "13800138046",
+    "email": "lukai@example.com"
+  },
+  {
+    "studentId": "2024048",
+    "name": "魏芳",
+    "class": "计算机2402",
+    "gender": "female",
+    "phone": "13800138047",
+    "email": "weifang@example.com"
+  },
+  {
+    "studentId": "2024049",
+    "name": "丁强",
+    "class": "医学影像2401",
+    "gender": "male",
+    "phone": "13800138048",
+    "email": "dingqiang@example.com"
+  },
+  {
+    "studentId": "2024050",
+    "name": "薛敏",
+    "class": "医学影像2402",
+    "gender": "female",
+    "phone": "13800138049",
+    "email": "xuemin@example.com"
+  }
+]
+
+
+
+
+
+teacher001,pass123,teacher,李老师,,
+student001,pass123,student,张三,计算机2401,2024001
+student002,pass123,student,李四,计算机2401,2024002
+student003,pass123,student,王五,计算机2401,2024003
+student004,pass123,student,赵六,计算机2401,2024004
+student005,pass123,student,孙七,计算机2401,2024005
+student006,pass123,student,周八,计算机2401,2024006
+student007,pass123,student,吴九,计算机2401,2024007
+student008,pass123,student,郑十,计算机2401,2024008
+student009,pass123,student,钱一,计算机2402,2024009
+student010,pass123,student,孙二,计算机2402,2024010
+student011,pass123,student,周明,计算机2402,2024011
+student012,pass123,student,吴芳,计算机2402,2024012
+student013,pass123,student,郑涛,计算机2402,2024013
+student014,pass123,student,王艳,计算机2402,2024014
+student015,pass123,student,李明,医学影像2401,2024015
+student016,pass123,student,张丽,医学影像2401,2024016
+student017,pass123,student,刘强,医学影像2401,2024017
+student018,pass123,student,陈红,医学影像2401,2024018
+student019,pass123,student,黄杰,医学影像2401,2024019
+student020,pass123,student,赵娜,医学影像2401,2024020
+student021,pass123,student,马军,医学影像2401,2024021
+student022,pass123,student,高敏,医学影像2401,2024022
+student023,pass123,student,林浩,医学影像2402,2024023
+student024,pass123,student,田甜,医学影像2402,2024024
+student025,pass123,student,朱伟,医学影像2402,2024025
+student026,pass123,student,胡蝶,医学影像2402,2024026
+student027,pass123,student,郭峰,医学影像2402,2024027
+student028,pass123,student,何丽,医学影像2402,2024028
+student029,pass123,student,罗阳,计算机2401,2024029
+student030,pass123,student,宋佳,计算机2401,2024030
+student031,pass123,student,唐磊,计算机2401,2024031
+student032,pass123,student,韩雪,计算机2401,2024032
+student033,pass123,student,冯刚,计算机2402,2024033
+student034,pass123,student,曹颖,计算机2402,2024034
+student035,pass123,student,彭飞,计算机2402,2024035
+student036,pass123,student,曾静,计算机2402,2024036
+student037,pass123,student,肖亮,医学影像2401,2024037
+student038,pass123,student,温雅,医学影像2401,2024038
+student039,pass123,student,蔡明,医学影像2401,2024039
+student040,pass123,student,袁莉,医学影像2401,2024040
+student041,pass123,student,于波,医学影像2402,2024041
+student042,pass123,student,董晴,医学影像2402,2024042
+student043,pass123,student,杜伟,医学影像2402,2024043
+student044,pass123,student,蒋欣,医学影像2402,2024044
+student045,pass123,student,沈浩,计算机2401,2024045
+student046,pass123,student,程琳,计算机2401,2024046
+student047,pass123,student,陆凯,计算机2402,2024047
+student048,pass123,student,魏芳,计算机2402,2024048
+student049,pass123,student,丁强,医学影像2401,2024049
+student050,pass123,student,薛敏,医学影像2402,2024050

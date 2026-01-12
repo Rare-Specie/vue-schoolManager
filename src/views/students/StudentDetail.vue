@@ -97,7 +97,7 @@
                         </el-tag>
                       </template>
                     </el-table-column>
-                    <el-table-column prop="semester" label="学期" width="100" align="center" />
+
                   </el-table>
                 </div>
                 <div v-else class="empty-state">

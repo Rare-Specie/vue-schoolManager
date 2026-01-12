@@ -41,7 +41,14 @@ export interface CourseStudent {
 
 // 获取课程列表
 export const getCourses = (params: CourseListParams = {}): Promise<CourseListResponse> => {
-  return request.get('/courses', { params })
+  console.log('=== API getCourses 调用 ===')
+  console.log('URL: /courses')
+  console.log('参数:', params)
+  
+  return request.get('/courses', { params }).then((response: any) => {
+    console.log('API 返回:', response)
+    return response
+  })
 }
 
 // 获取单个课程详情
@@ -65,9 +72,13 @@ export const deleteCourse = (id: string): Promise<void> => {
 }
 
 // 获取选课学生列表
-export const getCourseStudents = (courseId: string): Promise<CourseStudent[]> => {
+export const getCourseStudents = (courseId: string, limit?: number): Promise<CourseStudent[]> => {
   // 后端可能返回 { data: CourseStudent[] }（分页/封装）或直接返回数组，这里统一返回数组
-  return request.get(`/courses/${courseId}/students`).then((res: any) => {
+  const params: any = {}
+  if (limit !== undefined) {
+    params.limit = limit
+  }
+  return request.get(`/courses/${courseId}/students`, { params }).then((res: any) => {
     return res && res.data ? res.data : res
   })
 }

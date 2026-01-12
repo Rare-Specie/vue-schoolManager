@@ -53,53 +53,6 @@
         </el-form-item>
       </el-form>
 
-      <!-- 学生选课区域 -->
-      <div class="enrollment-section" v-if="authStore.isAdmin || authStore.isTeacher">
-        <div class="section-title">学生选课管理</div>
-        <el-form :inline="true" :model="enrollmentForm" class="enrollment-form">
-          <el-form-item label="选择课程" prop="courseId">
-            <el-select
-              v-model="enrollmentForm.courseId"
-              placeholder="请选择课程"
-              filterable
-              clearable
-              style="width: 200px"
-            >
-              <el-option
-                v-for="course in courseOptions"
-                :key="course.id"
-                :label="course.name"
-                :value="course.id"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item label="选择学生" prop="studentId">
-            <el-select
-              v-model="enrollmentForm.studentId"
-              placeholder="请选择学生"
-              filterable
-              clearable
-              style="width: 200px"
-            >
-              <el-option
-                v-for="student in studentOptions"
-                :key="student.id"
-                :label="`${student.name} (${student.studentId})`"
-                :value="student.studentId"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="success" @click="enrollStudent" :icon="Plus" :disabled="!canEnroll">
-              添加选课
-            </el-button>
-            <el-button type="info" @click="showEnrollmentDialog" :icon="User">
-              查看已选学生
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </div>
-
       <div class="action-buttons">
         <el-button type="success" @click="exportData('excel')" :icon="Download">导出Excel</el-button>
         <el-button type="info" @click="exportData('csv')" :icon="Document">导出CSV</el-button>
@@ -139,13 +92,12 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="semester" label="学期" width="140" align="center" />
         <el-table-column prop="createdAt" label="录入时间" width="160" align="center">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="160" fixed="right" align="center" v-if="authStore.isAdmin || authStore.isTeacher">
+        <el-table-column label="操作" width="180" fixed="right" align="center" v-if="authStore.isAdmin || authStore.isTeacher">
           <template #default="{ row }">
             <el-button size="small" type="primary" @click="editGrade(row)" :icon="Edit">编辑</el-button>
             <el-button size="small" type="danger" @click="deleteGrade(row)" :icon="Delete">删除</el-button>
@@ -192,9 +144,6 @@
         <el-form-item label="课程">
           <span>{{ editDialog.courseName }}</span>
         </el-form-item>
-        <el-form-item label="学期">
-          <span>{{ editDialog.semester }}</span>
-        </el-form-item>
         <el-form-item label="成绩" prop="score">
           <el-input-number
             v-model="editDialog.form.score"
@@ -215,60 +164,6 @@
         </span>
       </template>
     </el-dialog>
-
-    <!-- 已选学生对话框 -->
-    <el-dialog
-      v-model="enrollmentDialog.visible"
-      title="已选学生列表"
-      width="600px"
-      @close="clearEnrollmentDialog"
-    >
-      <div class="enrollment-content">
-        <div class="enrollment-header">
-          <span>课程：{{ currentCourseName }}</span>
-          <span class="student-count">共 {{ enrollmentDialog.students.length }} 名学生</span>
-        </div>
-        
-        <el-table
-          :data="enrollmentDialog.students"
-          v-loading="enrollmentDialog.loading"
-          border
-          stripe
-          style="width: 100%"
-          max-height="400"
-        >
-          <el-table-column type="index" label="序号" width="60" align="center" />
-          <el-table-column prop="studentId" label="学号" width="120" align="center" />
-          <el-table-column prop="name" label="姓名" width="120" align="center" />
-          <el-table-column prop="class" label="班级" width="120" align="center" />
-          <el-table-column label="状态" width="100" align="center">
-            <template #default="{ row }">
-              <el-tag :type="row.score !== undefined && row.score !== null ? 'success' : 'info'">
-                {{ row.score !== undefined && row.score !== null ? '已录入' : '未录入' }}
-              </el-tag>
-            </template>
-          </el-table-column>
-          <el-table-column label="操作" width="100" fixed="right" align="center">
-            <template #default="{ row }">
-              <el-button
-                size="small"
-                type="danger"
-                @click="removeStudentFromCourse(row)"
-                :icon="Delete"
-              >
-                移除
-              </el-button>
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="enrollmentDialog.visible = false">关闭</el-button>
-          <el-button type="primary" @click="refreshEnrollmentList">刷新列表</el-button>
-        </span>
-      </template>
-    </el-dialog>
   </div>
 </template>
 
@@ -280,7 +175,7 @@ import { useStudentStore } from '@/stores/student'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
-import { Search, Refresh, Download, Document, Printer, Edit, Delete, Plus, User } from '@element-plus/icons-vue'
+import { Search, Refresh, Download, Document, Printer, Edit, Delete, Plus } from '@element-plus/icons-vue'
 
 const gradeStore = useGradeStore()
 const courseStore = useCourseStore()
@@ -295,12 +190,6 @@ const searchForm = reactive({
   timeRange: [] as string[]
 })
 
-// 选课表单
-const enrollmentForm = reactive({
-  courseId: '',
-  studentId: ''
-})
-
 // 分页
 const pagination = reactive({
   page: 1,
@@ -309,20 +198,6 @@ const pagination = reactive({
 
 // 课程选项
 const courseOptions = computed(() => courseStore.courses)
-
-// 学生选项
-const studentOptions = computed(() => studentStore.students)
-
-// 当前课程名称
-const currentCourseName = computed(() => {
-  const course = courseStore.courses.find(c => c.id === enrollmentForm.courseId)
-  return course ? course.name : ''
-})
-
-// 是否可以选课
-const canEnroll = computed(() => {
-  return enrollmentForm.courseId && enrollmentForm.studentId
-})
 
 // 选中的记录
 const selectedRows = ref<any[]>([])
@@ -334,7 +209,6 @@ const editDialog = ref({
   currentId: '',
   studentName: '',
   courseName: '',
-  semester: '',
   form: {
     score: 0
   },
@@ -348,97 +222,15 @@ const editDialog = ref({
 
 const editFormRef = ref<FormInstance>()
 
-// 选课对话框
-const enrollmentDialog = ref({
-  visible: false,
-  loading: false,
-  students: [] as any[]
-})
-
 // 加载课程列表
 const loadCourses = async () => {
   await courseStore.fetchCourses({ page: 1, limit: 100 })
-}
-
-// 加载学生列表
-const loadStudents = async () => {
-  await studentStore.fetchStudents({ page: 1, limit: 1000 })
 }
 
 // 搜索
 const handleSearch = async () => {
   pagination.page = 1
   await loadGrades()
-}
-
-// 学生选课
-const enrollStudent = async () => {
-  if (!enrollmentForm.courseId) {
-    ElMessage.warning('请先选择课程')
-    return
-  }
-  if (!enrollmentForm.studentId) {
-    ElMessage.warning('请先选择学生')
-    return
-  }
-
-  try {
-    await courseStore.enrollStudentToCourse(enrollmentForm.courseId, enrollmentForm.studentId)
-    enrollmentForm.studentId = ''
-  } catch (error) {
-    // 错误已在store中处理
-  }
-}
-
-// 显示选课对话框
-const showEnrollmentDialog = async () => {
-  if (!enrollmentForm.courseId) {
-    ElMessage.warning('请先选择课程')
-    return
-  }
-
-  enrollmentDialog.value.visible = true
-  await refreshEnrollmentList()
-}
-
-// 刷新选课列表
-const refreshEnrollmentList = async () => {
-  if (!enrollmentForm.courseId) return
-
-  enrollmentDialog.value.loading = true
-  try {
-    const students = await courseStore.fetchCourseStudents(enrollmentForm.courseId)
-    enrollmentDialog.value.students = students
-  } catch (error) {
-    // 错误已在store中处理
-  } finally {
-    enrollmentDialog.value.loading = false
-  }
-}
-
-// 从课程中移除学生
-const removeStudentFromCourse = async (row: any) => {
-  try {
-    await ElMessageBox.confirm(
-      `确定要从课程中移除学生 ${row.name} 吗？这也会删除其成绩记录。`,
-      '警告',
-      { type: 'warning' }
-    )
-
-    await courseStore.unenrollStudentFromCourse(enrollmentForm.courseId, row.studentId)
-    // 从对话框列表中移除
-    enrollmentDialog.value.students = enrollmentDialog.value.students.filter(
-      s => s.studentId !== row.studentId
-    )
-  } catch (cancel) {
-    // 用户取消
-  }
-}
-
-// 清空选课对话框
-const clearEnrollmentDialog = () => {
-  enrollmentDialog.value.students = []
-  enrollmentDialog.value.loading = false
 }
 
 // 重置搜索
@@ -492,7 +284,6 @@ const editGrade = (row: any) => {
   editDialog.value.currentId = row.id
   editDialog.value.studentName = row.studentName
   editDialog.value.courseName = row.courseName
-  editDialog.value.semester = row.semester || '-'
   editDialog.value.form.score = row.score
 }
 
@@ -603,7 +394,6 @@ const printResults = () => {
           <th>班级</th>
           <th>课程</th>
           <th>成绩</th>
-          <th>学期</th>
         </tr>
       </thead>
       <tbody>
@@ -615,7 +405,6 @@ const printResults = () => {
             <td>-</td>
             <td>${grade.courseName}</td>
             <td><strong>${grade.score}</strong></td>
-            <td>${grade.semester || '-'}</td>
           </tr>
         `).join('')}
       </tbody>
@@ -674,7 +463,6 @@ const formatDate = (dateStr?: string) => {
 
 onMounted(() => {
   loadCourses()
-  loadStudents()
   // 如果是学生角色，自动填充学号（使用 user.studentId）
   if (authStore.isStudent) {
     const sid = authStore.user?.studentId
@@ -749,39 +537,36 @@ onMounted(() => {
   gap: 8px;
 }
 
-.enrollment-section {
-  margin-top: 16px;
-  padding-top: 16px;
-  border-top: 1px solid #ebeef5;
+/* 现代化滚动条样式 - Vue3风格 */
+/* Webkit 浏览器 (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-.section-title {
-  font-size: 16px;
-  font-weight: 600;
-  margin-bottom: 12px;
-  color: #303133;
-}
-
-.enrollment-form {
-  margin-bottom: 0;
-}
-
-.enrollment-content {
-  padding: 0;
-}
-
-.enrollment-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding: 12px;
-  background: #f5f7fa;
+::-webkit-scrollbar-track {
+  background: transparent;
   border-radius: 4px;
 }
 
-.student-count {
-  font-weight: 600;
-  color: #409EFF;
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(75, 85, 99, 0.8);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 </style>

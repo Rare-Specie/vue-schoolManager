@@ -735,7 +735,6 @@ const addStudent = async (token, studentData) => {
   "courseId": "课程编号",
   "courseName": "课程名称",
   "score": "分数",
-  "semester": "学期",
   "createdAt": "创建时间",
   "updatedAt": "更新时间"
 }

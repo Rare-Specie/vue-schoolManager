@@ -310,7 +310,9 @@ let statusTimer: ReturnType<typeof setInterval> | null = null
 
 // 面包屑
 const breadcrumbs = computed(() => {
-  return route.matched.filter(item => item.meta?.title || item.name)
+  return route.matched.filter(item => 
+    (item.meta?.title || item.name) && item.name !== 'main'
+  )
 })
 
 // 角色文本
@@ -561,6 +563,8 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 16px;
+  font-weight: 500;
 }
 
 .header-right {
@@ -654,6 +658,74 @@ onUnmounted(() => {
   gap: 8px;
 }
 
+/* 现代化滚动条样式 - Vue3风格 */
+/* Webkit 浏览器 (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(75, 85, 99, 0.8);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+/* 针对特定区域的滚动条优化 */
+.menu::-webkit-scrollbar,
+.main-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.menu::-webkit-scrollbar-thumb,
+.main-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.menu::-webkit-scrollbar-thumb:hover,
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: #666;
+}
+
+/* 深色区域的滚动条 (侧边栏) */
+.aside::-webkit-scrollbar-thumb {
+  background: #4a5568;
+}
+
+.aside::-webkit-scrollbar-thumb:hover {
+  background: #2d3748;
+}
+
+/* 浅色区域的滚动条 (主内容区) */
+.main-content::-webkit-scrollbar-thumb {
+  background: #cbd5e0;
+}
+
+.main-content::-webkit-scrollbar-thumb:hover {
+  background: #a0aec0;
+}
+
 /* 响应式处理 */
 @media screen and (max-width: 768px) {
   .main-layout {
@@ -671,6 +743,12 @@ onUnmounted(() => {
   
   .main-content {
     padding: 10px;
+  }
+  
+  /* 移动端优化滚动条 */
+  ::-webkit-scrollbar {
+    width: 4px;
+    height: 4px;
   }
 }
 </style>

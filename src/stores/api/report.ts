@@ -3,7 +3,6 @@ import request from './request'
 export interface ReportCardParams {
   studentId?: string
   class?: string
-  semester?: string
 }
 
 export interface StatisticalReportParams {
@@ -12,7 +11,6 @@ export interface StatisticalReportParams {
   class?: string
   courseId?: string
   studentId?: string
-  semester?: string
   startTime?: string
   endTime?: string
 }

@@ -333,4 +333,15 @@ onMounted(() => {
   justify-content: flex-end;
   gap: 8px;
 }
+
+/* 紧凑的按钮样式 */
+:deep(.el-table .cell) {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+}
+
+:deep(.el-table .el-button + .el-button) {
+  margin-left: 0;
+}
 </style>

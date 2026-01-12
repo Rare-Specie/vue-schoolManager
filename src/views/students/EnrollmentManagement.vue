@@ -3,12 +3,12 @@
     <el-card class="select-card">
       <el-form :inline="true" :model="form">
         <el-form-item label="选择课程" prop="courseId">
-          <el-select v-model="form.courseId" placeholder="请选择课程" filterable clearable style="width: 320px" @change="handleCourseChange">
+          <el-select v-model="form.courseId" placeholder="请选择课程" filterable clearable style="width: 280px" @change="handleCourseChange">
             <el-option v-for="course in courseOptions" :key="course.id" :label="`${course.name} (${course.courseId})`" :value="course.id" />
           </el-select>
         </el-form-item>
         <el-form-item label="选择学生" prop="studentIds">
-          <el-select v-model="form.studentIds" multiple filterable collapse-tags placeholder="可多选学生，按姓名/学号搜索" style="width: 420px">
+          <el-select v-model="form.studentIds" multiple filterable collapse-tags placeholder="可多选学生，按姓名/学号搜索" style="width: 380px">
             <el-option v-for="student in studentOptions" :key="student.id" :label="`${student.name}(${student.studentId})`" :value="student.studentId" />
           </el-select>
         </el-form-item>
@@ -32,7 +32,7 @@
       <el-table :data="enrolledStudents" size="small" border v-loading="loading" max-height="400">
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="studentId" label="学号" width="120" align="center" />
-        <el-table-column prop="name" label="姓名" width="140" />
+        <el-table-column prop="name" label="姓名" width="140" align="center" />
         <el-table-column prop="class" label="班级" width="120" align="center" />
         <el-table-column label="操作" width="120" align="center">
           <template #default="{ row }">
@@ -96,7 +96,7 @@ const refreshEnrolled = async () => {
   }
   loading.value = true
   try {
-    const students = await courseStore.fetchCourseStudents(form.value.courseId)
+    const students = await courseStore.fetchCourseStudents(form.value.courseId, 1000)
     enrolledStudents.value = students
   } catch (error) {
     // store already shows error, but also log for diagnosis

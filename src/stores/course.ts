@@ -28,11 +28,21 @@ export const useCourseStore = defineStore('course', () => {
   const fetchCourses = async (params: CourseListParams = {}) => {
     loading.value = true
     try {
+      console.log('=== fetchCourses 调用 ===')
+      console.log('请求参数:', params)
+      
       const response = await getCourses(params)
+      
+      console.log('API 返回数据:', response)
+      console.log('课程列表:', response.data)
+      
       courses.value = response.data
       total.value = response.total
+      
+      console.log('========================')
       return response
     } catch (error) {
+      console.error('获取课程列表失败:', error)
       ElMessage.error('获取课程列表失败')
       throw error
     } finally {
@@ -93,9 +103,9 @@ export const useCourseStore = defineStore('course', () => {
   }
 
   // 获取选课学生
-  const fetchCourseStudents = async (courseId: string) => {
+  const fetchCourseStudents = async (courseId: string, limit: number = 1000) => {
     try {
-      const students = await getCourseStudents(courseId)
+      const students = await getCourseStudents(courseId, limit)
       courseStudents.value = students
       return students
     } catch (error) {
