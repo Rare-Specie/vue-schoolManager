@@ -18,6 +18,7 @@ const router = createRouter({
       name: 'main',
       component: () => import('@/views/MainLayout.vue'),
       meta: { requiresAuth: true },
+      redirect: '/main/profile',
       children: [
         {
           path: 'profile',
@@ -112,9 +113,9 @@ router.beforeEach(async (to, from, next) => {
         // 刷新失败，继续流程（让后续请求处理错误）
       }
       
-      // 已认证但访问登录页，重定向到主页
+      // 已认证但访问登录页，重定向到个人中心
       if (to.path === '/') {
-        next('/main')
+        next('/main/profile')
         return
       }
       
@@ -129,7 +130,7 @@ router.beforeEach(async (to, from, next) => {
         const recovered = await SessionRecovery.restoreSession()
         if (recovered && authStore.isAuthenticated) {
           if (to.path === '/') {
-            next('/main')
+            next('/main/profile')
             return
           }
           next()
@@ -142,7 +143,7 @@ router.beforeEach(async (to, from, next) => {
         const success = await authStore.init()
         if (success && authStore.isAuthenticated) {
           if (to.path === '/') {
-            next('/main')
+            next('/main/profile')
             return
           }
           next()
@@ -163,8 +164,8 @@ router.beforeEach(async (to, from, next) => {
   
   // 不需要认证的页面
   if (to.path === '/' && authStore.isAuthenticated) {
-    // 已登录用户访问登录页，重定向到主页
-    next('/main')
+    // 已登录用户访问登录页，重定向到个人中心
+    next('/main/profile')
     return
   }
   
@@ -176,7 +177,7 @@ router.beforeEach(async (to, from, next) => {
       try {
         const success = await authStore.init()
         if (success) {
-          next('/main')
+          next('/main/profile')
           return
         }
       } catch (error) {

@@ -108,6 +108,7 @@ const handleSubmit = async () => {
 
   try {
     await authStore.handleLogin(form)
+    // 登录成功后跳转到 /main，会自动重定向到 /main/profile（个人中心）
     router.push('/main')
   } catch (error) {
     // 错误已在request.ts中统一处理，这里无需额外操作
