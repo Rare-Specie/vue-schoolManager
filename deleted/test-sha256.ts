@@ -3,7 +3,7 @@
  * 运行: npx tsx test-sha256.ts
  */
 
-import { hashPassword, verifyPassword, generateSalt, hashPasswordWithSalt } from './src/utils/crypto'
+import { hashPassword, verifyPassword, generateSalt, hashPasswordWithSalt } from '../src/utils/crypto'
 
 console.log('=== SHA256密码哈希测试 ===\n')
 

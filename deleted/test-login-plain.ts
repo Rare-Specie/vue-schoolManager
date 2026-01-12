@@ -3,7 +3,7 @@
  * 这个文件用于验证前端修改后，密码会以明文形式发送到后端
  */
 
-import { hashPassword } from './src/utils/crypto'
+import { hashPassword } from '../src/utils/crypto'
 
 // 模拟登录请求数据
 const loginData = {

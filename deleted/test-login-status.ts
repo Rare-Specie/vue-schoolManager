@@ -4,8 +4,8 @@
  */
 
 import { createPinia } from 'pinia'
-import { useAuthStore } from './src/stores/auth'
-import { tokenManager } from './src/utils/tokenManager'
+import { useAuthStore } from '../src/stores/auth'
+import { tokenManager } from '../src/utils/tokenManager'
 
 // 创建pinia实例
 const pinia = createPinia()
