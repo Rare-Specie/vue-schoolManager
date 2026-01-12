@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>布局测试</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        body {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+
+        #app {
+            height: 100vh;
+            width: 100%;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .main-layout {
+            height: 100vh;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            background-color: #f0f2f5;
+        }
+
+        .aside {
+            background-color: #304156;
+            width: 200px;
+            height: 100%;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .logo {
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 18px;
+            border-bottom: 1px solid #2c3e50;
+        }
+
+        .menu {
+            height: calc(100% - 60px);
+            overflow-y: auto;
+            overflow-x: hidden;
+        }
+
+        .right-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .header {
+            background-color: white;
+            border-bottom: 1px solid #e6e6e6;
+            height: 60px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .main-content {
+            background-color: #f0f2f5;
+            padding: 20px;
+            overflow-y: auto;
+            flex: 1;
+            height: calc(100vh - 60px);
+        }
+
+        .test-box {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .info {
+            background: #e8f4f8;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #409EFF;
+        }
+
+        .dimensions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .dim-item {
+            background: #f5f7fa;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+
+        @media screen and (max-width: 768px) {
+            .main-layout {
+                position: relative;
+            }
+            
+            .aside {
+                width: 64px;
+            }
+            
+            .header {
+                padding: 0 10px;
+            }
+            
+            .main-content {
+                padding: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <div class="main-layout">
+            <!-- 侧边栏 -->
+            <div class="aside">
+                <div class="logo">成绩管理</div>
+                <div class="menu">
+                    <div style="padding: 10px; color: #bfcbd9;">菜单项 1</div>
+                    <div style="padding: 10px; color: #bfcbd9;">菜单项 2</div>
+                    <div style="padding: 10px; color: #bfcbd9;">菜单项 3</div>
+                </div>
+            </div>
+
+            <!-- 右侧容器 -->
+            <div class="right-container">
+                <!-- 顶部导航 -->
+                <div class="header">
+                    <div>左侧内容</div>
+                    <div>用户信息</div>
+                </div>
+
+                <!-- 主要内容区域 -->
+                <div class="main-content">
+                    <div class="info">
+                        <h3>布局测试页面</h3>
+                        <p>这个页面用于验证 MainLayout 的布局是否正确占满整个屏幕空间。</p>
+                    </div>
+
+                    <div class="test-box">
+                        <h4>屏幕尺寸信息</h4>
+                        <div class="dimensions">
+                            <div class="dim-item">窗口宽度: <span id="winWidth">-</span> px</div>
+                            <div class="dim-item">窗口高度: <span id="winHeight">-</span> px</div>
+                            <div class="dim-item">屏幕宽度: <span id="screenWidth">-</span> px</div>
+                            <div class="dim-item">屏幕高度: <span id="screenHeight">-</span> px</div>
+                        </div>
+                    </div>
+
+                    <div class="test-box">
+                        <h4>布局验证</h4>
+                        <ul>
+                            <li>✅ 侧边栏应该固定宽度，高度占满屏幕</li>
+                            <li>✅ 顶部导航应该固定高度，宽度自适应</li>
+                            <li>✅ 主要内容区域应该填充剩余空间</li>
+                            <li>✅ 在大屏幕上不应该有左右黑边</li>
+                            <li>✅ 在小屏幕上不应该有上下黑边</li>
+                            <li>✅ 滚动应该只在内容区域发生</li>
+                        </ul>
+                    </div>
+
+                    <div class="test-box">
+                        <h4>测试说明</h4>
+                        <p>请尝试以下操作来验证布局：</p>
+                        <ol>
+                            <li>调整浏览器窗口大小，观察布局变化</li>
+                            <li>在不同屏幕尺寸的设备上查看</li>
+                            <li>检查是否有任何黑边或空白区域</li>
+                            <li>滚动页面，确保只有内容区域滚动</li>
+                        </ol>
+                    </div>
+
+                    <!-- 生成一些额外的内容来测试滚动 -->
+                    <div class="test-box" style="background: #f0f2f5; border: 1px dashed #ccc;">
+                        <h4>滚动测试区域</h4>
+                        <p>如果内容足够多，应该只在右侧主要内容区域滚动，而不是整个页面。</p>
+                        <div style="height: 1000px; background: linear-gradient(white, #f5f5f5); margin-top: 10px; display: flex; align-items: center; justify-content: center; color: #999;">
+                            滚动区域占位符
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 实时更新窗口尺寸
+        function updateDimensions() {
+            document.getElementById('winWidth').textContent = window.innerWidth;
+            document.getElementById('winHeight').textContent = window.innerHeight;
+            document.getElementById('screenWidth').textContent = screen.width;
+            document.getElementById('screenHeight').textContent = screen.height;
+        }
+
+        updateDimensions();
+        window.addEventListener('resize', updateDimensions);
+
+        // 检查是否有黑边
+        function checkForBlackBars() {
+            const body = document.body;
+            const html = document.documentElement;
+            
+            const bodyOverflow = window.getComputedStyle(body).overflow;
+            const htmlOverflow = window.getComputedStyle(html).overflow;
+            
+            console.log('Body overflow:', bodyOverflow);
+            console.log('HTML overflow:', htmlOverflow);
+            console.log('Body dimensions:', body.offsetWidth, 'x', body.offsetHeight);
+            console.log('Window dimensions:', window.innerWidth, 'x', window.innerHeight);
+        }
+
+        // 每2秒检查一次
+        setInterval(checkForBlackBars, 2000);
+        
+        // 页面加载完成后立即检查
+        setTimeout(checkForBlackBars, 500);
+    </script>
+</body>
+</html>
