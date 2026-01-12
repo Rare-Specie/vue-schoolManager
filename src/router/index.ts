@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { ElMessage } from 'element-plus'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -94,17 +95,56 @@ const router = createRouter({
 })
 
 // 路由守卫
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   const requiresAuth = to.meta.requiresAuth
   
-  if (requiresAuth && !authStore.isAuthenticated) {
-    next('/')
-  } else if (to.path === '/' && authStore.isAuthenticated) {
-    next('/main')
-  } else {
+  // 如果需要认证
+  if (requiresAuth) {
+    // 检查是否已认证
+    if (!authStore.isAuthenticated) {
+      // 尝试从localStorage恢复状态
+      if (authStore.token) {
+        // 有token但状态未初始化，尝试初始化
+        try {
+          await authStore.init()
+          // 初始化后再次检查
+          if (authStore.isAuthenticated) {
+            next()
+            return
+          }
+        } catch (error) {
+          // 初始化失败，清除状态并跳转到登录页
+          authStore.clearAuthState()
+          ElMessage.warning('登录已过期，请重新登录')
+          next('/')
+          return
+        }
+      }
+      // 未认证，跳转到登录页
+      next('/')
+      return
+    }
+    
+    // 已认证但访问登录页，重定向到主页
+    if (to.path === '/') {
+      next('/main')
+      return
+    }
+    
+    // 已认证且访问需要认证的页面，验证权限
     next()
+    return
   }
+  
+  // 不需要认证的页面
+  if (to.path === '/' && authStore.isAuthenticated) {
+    // 已登录用户访问登录页，重定向到主页
+    next('/main')
+    return
+  }
+  
+  next()
 })
 
 export default router

@@ -68,3 +68,13 @@ export const deleteCourse = (id: string): Promise<void> => {
 export const getCourseStudents = (courseId: string): Promise<CourseStudent[]> => {
   return request.get(`/courses/${courseId}/students`)
 }
+
+// 学生选课
+export const enrollStudent = (courseId: string, studentId: string): Promise<any> => {
+  return request.post('/courses/enroll', { courseId, studentId })
+}
+
+// 取消选课
+export const unenrollStudent = (courseId: string, studentId: string): Promise<any> => {
+  return request.post('/courses/unenroll', { courseId, studentId })
+}

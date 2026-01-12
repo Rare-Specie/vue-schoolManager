@@ -7,6 +7,8 @@ import {
   updateCourse,
   deleteCourse,
   getCourseStudents,
+  enrollStudent,
+  unenrollStudent,
   type Course,
   type CourseListParams,
   type CourseFormData,
@@ -102,6 +104,38 @@ export const useCourseStore = defineStore('course', () => {
     }
   }
 
+  // 学生选课
+  const enrollStudentToCourse = async (courseId: string, studentId: string) => {
+    try {
+      await enrollStudent(courseId, studentId)
+      ElMessage.success('选课成功')
+      // 刷新选课学生列表
+      if (currentCourse.value && currentCourse.value.id === courseId) {
+        await fetchCourseStudents(courseId)
+      }
+      return true
+    } catch (error) {
+      ElMessage.error('选课失败')
+      throw error
+    }
+  }
+
+  // 取消选课
+  const unenrollStudentFromCourse = async (courseId: string, studentId: string) => {
+    try {
+      await unenrollStudent(courseId, studentId)
+      ElMessage.success('取消选课成功')
+      // 刷新选课学生列表
+      if (currentCourse.value && currentCourse.value.id === courseId) {
+        await fetchCourseStudents(courseId)
+      }
+      return true
+    } catch (error) {
+      ElMessage.error('取消选课失败')
+      throw error
+    }
+  }
+
   // 清空当前课程
   const clearCurrentCourse = () => {
     currentCourse.value = null
@@ -121,6 +155,8 @@ export const useCourseStore = defineStore('course', () => {
     updateCourseInfo,
     removeCourse,
     fetchCourseStudents,
+    enrollStudentToCourse,
+    unenrollStudentFromCourse,
     clearCurrentCourse
   }
 })

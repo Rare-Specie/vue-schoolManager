@@ -14,8 +14,14 @@ const request = axios.create({
 
 // 请求拦截器
 request.interceptors.request.use(
-  (config) => {
+  async (config) => {
     const authStore = useAuthStore()
+    
+    // 检查token是否需要刷新
+    if (authStore.token) {
+      await authStore.checkTokenRefresh()
+    }
+    
     if (authStore.token) {
       config.headers.Authorization = `Bearer ${authStore.token}`
     }

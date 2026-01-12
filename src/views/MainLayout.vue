@@ -239,7 +239,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getOperationLogs } from '@/stores/api/auth'
@@ -390,6 +390,30 @@ const loadLogs = async () => {
 watch(() => route.path, () => {
   passwordDialog.value.visible = false
   logsDialog.value.visible = false
+})
+
+// 页面可见性变化时验证token
+const handleVisibilityChange = async () => {
+  if (document.visibilityState === 'visible') {
+    // 页面重新可见时，验证token有效性
+    const isValid = await authStore.validateToken()
+    if (!isValid) {
+      ElMessage.warning('登录已过期，请重新登录')
+      router.push('/')
+    }
+  }
+}
+
+// 监听页面可见性变化
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', handleVisibilityChange)
+}
+
+// 组件卸载时移除监听
+onUnmounted(() => {
+  if (typeof document !== 'undefined') {
+    document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }
 })
 </script>
 
