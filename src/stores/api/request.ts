@@ -17,14 +17,25 @@ request.interceptors.request.use(
   async (config) => {
     const authStore = useAuthStore()
     
-    // 检查token是否需要刷新
-    if (authStore.token) {
-      await authStore.checkTokenRefresh()
+    // 检查token是否需要刷新（仅在有token且未初始化时）
+    if (authStore.token && !authStore.isInitialized) {
+      // 尝试初始化认证状态
+      await authStore.init()
     }
     
+    // 检查token是否需要刷新
+    if (authStore.token && authStore.isAuthenticated) {
+      // 异步检查刷新，不阻塞请求
+      authStore.checkTokenRefresh().catch(() => {
+        // 刷新失败不影响当前请求，会在下次请求时处理
+      })
+    }
+    
+    // 添加token到请求头
     if (authStore.token) {
       config.headers.Authorization = `Bearer ${authStore.token}`
     }
+    
     return config
   },
   (error) => {

@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { login, logout, getProfile, updatePassword, type LoginRequest, type UserProfile, type UpdatePasswordRequest } from './api/auth'
 import { ElMessage } from 'element-plus'
 import { tokenManager } from '@/utils/tokenManager'
@@ -8,6 +8,8 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string>(tokenManager.getToken())
   const user = ref<UserProfile | null>(null)
   const loading = ref(false)
+  const isInitialized = ref(false)
+  const lastRefreshTime = ref<number>(0)
 
   const isAuthenticated = computed(() => {
     // 使用Token管理器验证
@@ -22,23 +24,50 @@ export const useAuthStore = defineStore('auth', () => {
   const clearAuthState = () => {
     token.value = ''
     user.value = null
+    isInitialized.value = false
     tokenManager.clear()
   }
 
+  // 从localStorage恢复用户信息
+  const restoreUserInfo = () => {
+    const userInfo = tokenManager.getUserInfo()
+    if (userInfo && !user.value) {
+      user.value = userInfo
+    }
+  }
+
   // 初始化 - 页面加载时恢复状态
-  const init = async () => {
+  const init = async (force = false) => {
+    // 如果已经初始化且不是强制刷新，直接返回
+    if (isInitialized.value && !force) {
+      return true
+    }
+
     // 检查token是否有效
     if (tokenManager.isValid()) {
       try {
+        // 先尝试从localStorage恢复用户信息
+        restoreUserInfo()
+        
         // 验证token有效性（调用后端）
-        await getProfile()
-        // Token管理器会自动处理刷新
+        const profile = await getProfile()
+        user.value = profile
+        token.value = tokenManager.getToken()
+        
+        // 保存用户信息到localStorage
+        tokenManager.saveUserInfo(profile)
+        
+        isInitialized.value = true
+        return true
       } catch (error) {
+        console.error('初始化失败:', error)
         clearAuthState()
+        return false
       }
     } else {
       // token无效，清除状态
       clearAuthState()
+      return false
     }
   }
 
@@ -53,6 +82,12 @@ export const useAuthStore = defineStore('auth', () => {
       
       // 使用Token管理器保存token（默认24小时过期）
       tokenManager.setToken(response.token, 24 * 60 * 60 * 1000)
+      
+      // 保存用户信息到localStorage
+      tokenManager.saveUserInfo(response.user)
+      
+      isInitialized.value = true
+      lastRefreshTime.value = Date.now()
       
       ElMessage.success('登录成功')
       return response
@@ -81,6 +116,8 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const profile = await getProfile()
       user.value = profile
+      // 更新localStorage
+      tokenManager.saveUserInfo(profile)
       return profile
     } catch (error) {
       ElMessage.error('获取用户信息失败')
@@ -115,6 +152,7 @@ export const useAuthStore = defineStore('auth', () => {
       try {
         const profile = await getProfile()
         user.value = profile
+        tokenManager.saveUserInfo(profile)
       } catch (error) {
         clearAuthState()
         return false
@@ -128,9 +166,16 @@ export const useAuthStore = defineStore('auth', () => {
   const checkTokenRefresh = async () => {
     if (tokenManager.needsRefresh() && tokenManager.isValid()) {
       try {
+        // 防止频繁刷新（至少间隔1分钟）
+        const now = Date.now()
+        if (now - lastRefreshTime.value < 60 * 1000) {
+          return true
+        }
+        
         // 尝试自动刷新token
         const currentToken = tokenManager.getToken()
         tokenManager.setToken(currentToken, 24 * 60 * 60 * 1000)
+        lastRefreshTime.value = now
         return true
       } catch (error) {
         ElMessage.warning('登录即将过期，请重新登录')
@@ -138,6 +183,78 @@ export const useAuthStore = defineStore('auth', () => {
       }
     }
     return true
+  }
+
+  // 页面激活时检查token
+  const handlePageVisibility = async () => {
+    if (document.visibilityState === 'visible') {
+      // 页面变为可见时检查token
+      if (token.value && !tokenManager.isValid()) {
+        // Token已过期
+        clearAuthState()
+        if (window.location.pathname !== '/') {
+          ElMessage.warning('登录已过期，请重新登录')
+          window.location.href = '/'
+        }
+        return
+      }
+      
+      // Token即将过期，尝试刷新
+      if (tokenManager.needsRefresh() && tokenManager.isValid()) {
+        await checkTokenRefresh()
+      }
+      
+      // 定期刷新用户信息（每5分钟）
+      const now = Date.now()
+      if (now - lastRefreshTime.value > 5 * 60 * 1000 && isAuthenticated.value) {
+        try {
+          await fetchProfile()
+          lastRefreshTime.value = now
+        } catch (error) {
+          // 忽略错误，不影响用户体验
+        }
+      }
+    }
+  }
+
+  // 页面卸载时清理
+  const handleBeforeUnload = () => {
+    // 清理定时器（通过clear方法会自动清理）
+    // 这里不需要直接访问refreshTimer
+  }
+
+  // 监听页面事件
+  const setupEventListeners = () => {
+    if (typeof window !== 'undefined') {
+      window.addEventListener('visibilitychange', handlePageVisibility)
+      window.addEventListener('beforeunload', handleBeforeUnload)
+      window.addEventListener('focus', handlePageVisibility)
+    }
+  }
+
+  // 移除事件监听
+  const removeEventListeners = () => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('visibilitychange', handlePageVisibility)
+      window.removeEventListener('beforeunload', handleBeforeUnload)
+      window.removeEventListener('focus', handlePageVisibility)
+    }
+  }
+
+  // 自动初始化（在store创建时）
+  const autoInit = async () => {
+    // 延迟初始化，确保其他依赖已加载
+    setTimeout(async () => {
+      if (tokenManager.isValid() && !isInitialized.value) {
+        await init()
+      }
+    }, 100)
+  }
+
+  // 页面加载时自动执行
+  if (typeof window !== 'undefined') {
+    autoInit()
+    setupEventListeners()
   }
 
   return {
@@ -148,6 +265,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAdmin,
     isTeacher,
     isStudent,
+    isInitialized,
+    lastRefreshTime,
     init,
     handleLogin,
     handleLogout,
@@ -155,6 +274,8 @@ export const useAuthStore = defineStore('auth', () => {
     handleChangePassword,
     validateToken,
     clearAuthState,
-    checkTokenRefresh
+    checkTokenRefresh,
+    setupEventListeners,
+    removeEventListeners
   }
 })

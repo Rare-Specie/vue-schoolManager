@@ -140,6 +140,17 @@
         </div>
 
         <div class="header-right">
+          <!-- 登录状态提示 -->
+          <div v-if="showStatusTip" class="status-warning" @click="handleManualRefresh">
+            <el-tooltip content="点击刷新登录状态" placement="bottom">
+              <span class="warning-text">
+                <el-icon><Warning /></el-icon>
+                <span>登录状态即将过期 ({{ tokenStatus.remainingTime }}分钟)</span>
+                <el-button type="text" :icon="Refresh" class="refresh-btn">刷新</el-button>
+              </span>
+            </el-tooltip>
+          </div>
+
           <el-dropdown trigger="click" @command="handleCommand">
             <span class="user-info">
               <el-avatar :size="32" :icon="User" />
@@ -239,19 +250,69 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, watch, onUnmounted } from 'vue'
+import { ref, computed, watch, onUnmounted, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { getOperationLogs } from '@/stores/api/auth'
+import { tokenManager } from '@/utils/tokenManager'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
-import { User } from '@element-plus/icons-vue'
+import { User, Refresh, Warning, ArrowDown } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()
 const authStore = useAuthStore()
 
 const isCollapse = ref(false)
+
+// 登录状态监控
+const tokenStatus = ref({
+  remainingTime: 0,
+  needsRefresh: false,
+  isValid: false
+})
+
+// 更新token状态显示
+const updateTokenStatus = () => {
+  if (authStore.isAuthenticated) {
+    const remainingTime = Math.floor(tokenManager.getRemainingTime() / 1000 / 60)
+    tokenStatus.value = {
+      remainingTime,
+      needsRefresh: tokenManager.needsRefresh(),
+      isValid: tokenManager.isValid()
+    }
+  } else {
+    tokenStatus.value = {
+      remainingTime: 0,
+      needsRefresh: false,
+      isValid: false
+    }
+  }
+}
+
+// 手动刷新token
+const handleManualRefresh = async () => {
+  try {
+    const success = await tokenManager.manualRefresh()
+    if (success) {
+      ElMessage.success('登录状态已刷新')
+      updateTokenStatus()
+    } else {
+      ElMessage.warning('刷新失败，请重新登录')
+      router.push('/')
+    }
+  } catch (error) {
+    ElMessage.error('刷新失败')
+  }
+}
+
+// 显示登录状态提示
+const showStatusTip = computed(() => {
+  return tokenStatus.value.needsRefresh && tokenStatus.value.isValid
+})
+
+// 定期更新状态
+let statusTimer: ReturnType<typeof setInterval> | null = null
 
 // 面包屑
 const breadcrumbs = computed(() => {
@@ -404,13 +465,27 @@ const handleVisibilityChange = async () => {
   }
 }
 
-// 监听页面可见性变化
-if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', handleVisibilityChange)
-}
+// 页面挂载时初始化状态监控
+onMounted(() => {
+  // 初始状态更新
+  updateTokenStatus()
+  
+  // 每30秒更新一次状态
+  statusTimer = setInterval(updateTokenStatus, 30 * 1000)
+  
+  // 页面可见性变化时验证token
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+  }
+})
 
 // 组件卸载时移除监听
 onUnmounted(() => {
+  if (statusTimer) {
+    clearInterval(statusTimer)
+    statusTimer = null
+  }
+  
   if (typeof document !== 'undefined') {
     document.removeEventListener('visibilitychange', handleVisibilityChange)
   }
@@ -485,6 +560,45 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   flex-shrink: 0;
+  gap: 12px;
+}
+
+.status-warning {
+  background: #fef6ec;
+  border: 1px solid #f5c6cb;
+  border-radius: 4px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.3s;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-warning:hover {
+  background: #fdf2f0;
+  border-color: #f56c6c;
+}
+
+.warning-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #f56c6c;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.refresh-btn {
+  color: #f56c6c !important;
+  font-size: 12px !important;
+  padding: 0 4px !important;
+  margin-left: 4px;
+}
+
+.refresh-btn:hover {
+  color: #f56c6c !important;
+  background: transparent !important;
 }
 
 .user-info {

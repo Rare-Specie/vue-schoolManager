@@ -1,5 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { tokenManager } from '@/utils/tokenManager'
+import { SessionRecovery } from '@/utils/sessionRecovery'
 import { ElMessage } from 'element-plus'
 
 const router = createRouter({
@@ -101,39 +103,61 @@ router.beforeEach(async (to, from, next) => {
   
   // 如果需要认证
   if (requiresAuth) {
-    // 检查是否已认证
-    if (!authStore.isAuthenticated) {
-      // 尝试从localStorage恢复状态
-      if (authStore.token) {
-        // 有token但状态未初始化，尝试初始化
-        try {
-          await authStore.init()
-          // 初始化后再次检查
-          if (authStore.isAuthenticated) {
-            next()
+    // 1. 首先检查内存中的认证状态
+    if (authStore.isAuthenticated) {
+      // 已认证，检查是否需要刷新token
+      try {
+        await authStore.checkTokenRefresh()
+      } catch (error) {
+        // 刷新失败，继续流程（让后续请求处理错误）
+      }
+      
+      // 已认证但访问登录页，重定向到主页
+      if (to.path === '/') {
+        next('/main')
+        return
+      }
+      
+      next()
+      return
+    }
+    
+    // 2. 内存中无状态，尝试从localStorage/sessionStorage恢复
+    if (!authStore.isInitialized) {
+      // 首先尝试会话恢复
+      if (SessionRecovery.needsRecovery()) {
+        const recovered = await SessionRecovery.restoreSession()
+        if (recovered && authStore.isAuthenticated) {
+          if (to.path === '/') {
+            next('/main')
             return
           }
-        } catch (error) {
-          // 初始化失败，清除状态并跳转到登录页
-          authStore.clearAuthState()
-          ElMessage.warning('登录已过期，请重新登录')
-          next('/')
+          next()
           return
         }
       }
-      // 未认证，跳转到登录页
-      next('/')
-      return
+      
+      // 会话恢复失败，尝试普通初始化
+      try {
+        const success = await authStore.init()
+        if (success && authStore.isAuthenticated) {
+          if (to.path === '/') {
+            next('/main')
+            return
+          }
+          next()
+          return
+        }
+      } catch (error) {
+        console.error('恢复登录状态失败:', error)
+      }
     }
     
-    // 已认证但访问登录页，重定向到主页
-    if (to.path === '/') {
-      next('/main')
-      return
+    // 3. 恢复失败或无token，跳转到登录页
+    if (to.path !== '/') {
+      ElMessage.warning('请先登录')
     }
-    
-    // 已认证且访问需要认证的页面，验证权限
-    next()
+    next('/')
     return
   }
   
@@ -144,7 +168,30 @@ router.beforeEach(async (to, from, next) => {
     return
   }
   
+  // 访问登录页时，如果已登录则重定向
+  if (to.path === '/' && !authStore.isAuthenticated) {
+    // 检查是否有token可以恢复
+    if (tokenManager.getToken() && !authStore.isInitialized) {
+      // 有token但未初始化，尝试恢复
+      try {
+        const success = await authStore.init()
+        if (success) {
+          next('/main')
+          return
+        }
+      } catch (error) {
+        // 恢复失败，显示登录页
+      }
+    }
+  }
+  
   next()
+})
+
+// 路由错误处理
+router.onError((error) => {
+  console.error('路由错误:', error)
+  ElMessage.error('页面加载失败，请刷新重试')
 })
 
 export default router
