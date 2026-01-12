@@ -6,6 +6,7 @@
 import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage } from 'element-plus'
+import { verifyToken } from '@/stores/api/auth'
 
 // Token存储键名
 const TOKEN_KEY = 'token'
@@ -221,16 +222,15 @@ export class TokenManager {
     }
   }
 
-  // 验证token有效性（调用后端验证）
+  // 验证token有效性（调用后端验证，避免与 authStore 互相调用导致循环依赖）
   async validate(): Promise<boolean> {
     if (!this.isValid()) {
       return false
     }
 
     try {
-      const authStore = useAuthStore()
-      // 调用后端验证接口
-      await authStore.validateToken()
+      // 直接调用后端验证接口，避免引用 auth store 的 validateToken 造成循环依赖
+      await verifyToken()
       return true
     } catch (error) {
       this.clear()
@@ -245,9 +245,8 @@ export class TokenManager {
     }
 
     try {
-      const authStore = useAuthStore()
-      // 验证token有效性
-      await authStore.validateToken()
+      // 直接调用后端验证接口
+      await verifyToken()
       
       // 如果验证成功，延长过期时间
       const currentToken = this.token.value

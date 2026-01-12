@@ -6,6 +6,7 @@
         <el-form-item label="学生学号">
           <el-input
             v-model="searchForm.studentId"
+            :disabled="authStore.isStudent"
             placeholder="请输入学号"
             clearable
             @clear="handleSearch"
@@ -84,7 +85,7 @@
                 v-for="student in studentOptions"
                 :key="student.id"
                 :label="`${student.name} (${student.studentId})`"
-                :value="student.id"
+                :value="student.studentId"
               />
             </el-select>
           </el-form-item>
@@ -674,10 +675,21 @@ const formatDate = (dateStr?: string) => {
 onMounted(() => {
   loadCourses()
   loadStudents()
-  // 如果是学生角色，自动填充学号
-  if (authStore.isStudent && authStore.user?.username) {
-    searchForm.studentId = authStore.user.username
-    handleSearch()
+  // 如果是学生角色，自动填充学号（使用 user.studentId）
+  if (authStore.isStudent) {
+    const sid = authStore.user?.studentId
+    if (sid) {
+      searchForm.studentId = sid
+      handleSearch()
+    } else {
+      // 未绑定学号，提示并禁止查询
+      searchForm.studentId = ''
+      // 不自动查询，提示用户绑定学号
+      // 使用 setTimeout 以避免 onMounted 中打断流程
+      setTimeout(() => {
+        ElMessage.warning('您的账号尚未绑定学号，无法查看个人成绩，请联系管理员绑定学号')
+      }, 200)
+    }
   }
 })
 </script>

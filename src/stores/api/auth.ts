@@ -14,6 +14,7 @@ export interface LoginResponse {
     role: 'admin' | 'teacher' | 'student'
     name: string
     class?: string
+    studentId?: string
   }
 }
 
@@ -23,6 +24,7 @@ export interface UserProfile {
   role: 'admin' | 'teacher' | 'student'
   name: string
   class?: string
+  studentId?: string
   createdAt?: string
   updatedAt?: string
 }

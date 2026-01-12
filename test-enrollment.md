@@ -81,18 +81,17 @@
 
 ### 选课
 ```bash
-curl -X POST http://localhost:21180/api/courses/enroll \
+curl -X POST http://localhost:21180/api/courses/CS101/enroll \
   -H "Authorization: Bearer <token>" \
   -H "Content-Type: application/json" \
-  -d '{"courseId": "CS101", "studentId": "2024001"}'
+  -d '{"studentId": "2024001"}'
 ```
 
 ### 取消选课
 ```bash
-curl -X POST http://localhost:21180/api/courses/unenroll \
+curl -X DELETE http://localhost:21180/api/courses/CS101/enroll/2024001 \
   -H "Authorization: Bearer <token>" \
-  -H "Content-Type: application/json" \
-  -d '{"courseId": "CS101", "studentId": "2024001"}'
+  -H "Content-Type: application/json"
 ```
 
 ### 获取选课学生列表

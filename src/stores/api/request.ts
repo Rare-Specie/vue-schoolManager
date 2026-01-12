@@ -58,7 +58,7 @@ request.interceptors.response.use(
 
       // 简化错误提示，避免过多信息
       // 登录失败时只显示简洁的错误信息
-      if (status === 401 && config?.url === '/auth/login') {
+      if (status === 401 && config?.url && config.url.toString().endsWith('/auth/login')) {
         authStore.handleLogout()
         ElMessage.error('用户名或密码错误')
       } else if (status === 401) {

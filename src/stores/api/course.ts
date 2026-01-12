@@ -71,10 +71,12 @@ export const getCourseStudents = (courseId: string): Promise<CourseStudent[]> =>
 
 // 学生选课
 export const enrollStudent = (courseId: string, studentId: string): Promise<any> => {
-  return request.post('/courses/enroll', { courseId, studentId })
+  // 使用 RESTful 路径：POST /courses/:id/enroll
+  return request.post(`/courses/${courseId}/enroll`, { studentId })
 }
 
 // 取消选课
 export const unenrollStudent = (courseId: string, studentId: string): Promise<any> => {
-  return request.post('/courses/unenroll', { courseId, studentId })
+  // 使用 RESTful 路径：DELETE /courses/:id/enroll/:studentId
+  return request.delete(`/courses/${courseId}/enroll/${studentId}`)
 }

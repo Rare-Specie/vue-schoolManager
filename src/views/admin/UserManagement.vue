@@ -125,6 +125,9 @@
         <el-form-item label="班级" prop="class" v-if="dialog.form.role === 'student'">
           <el-input v-model="dialog.form.class" placeholder="请输入班级" />
         </el-form-item>
+        <el-form-item label="学号" prop="studentId" v-if="dialog.form.role === 'student'">
+          <el-input v-model="dialog.form.studentId" placeholder="请输入学号（与学生记录绑定）" />
+        </el-form-item>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
@@ -154,11 +157,11 @@
           v-model="batchDialog.text"
           type="textarea"
           :rows="10"
-          placeholder="用户名,密码,角色,姓名,班级
+          placeholder="用户名,密码,角色,姓名,班级,学号（可选，仅学生）
 例如：
-teacher001,pass123,teacher,李老师,
-student001,pass123,student,张三,计算机2401
-student002,pass123,student,李四,计算机2401"
+teacher001,pass123,teacher,李老师,,
+student001,pass123,student,张三,计算机2401,2024001
+student002,pass123,student,李四,计算机2401,2024002"
         />
 
         <div class="batch-preview" v-if="batchDialog.parsedData.length > 0">
@@ -168,6 +171,7 @@ student002,pass123,student,李四,计算机2401"
             <el-table-column prop="role" label="角色" width="80" />
             <el-table-column prop="name" label="姓名" width="100" />
             <el-table-column prop="class" label="班级" />
+            <el-table-column prop="studentId" label="学号" width="140" />
           </el-table>
         </div>
       </div>
@@ -224,11 +228,13 @@ student002,pass123,student,李四,计算机2401"
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
+import { useStudentStore } from '@/stores/student'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { Search, Refresh, Plus, Delete, Edit, Unlock, UserFilled } from '@element-plus/icons-vue'
 
 const userStore = useUserStore()
+const studentStore = useStudentStore()
 
 // 搜索表单
 const searchForm = reactive({
@@ -257,7 +263,8 @@ const dialog = reactive({
     password: '',
     role: 'student' as 'admin' | 'teacher' | 'student',
     name: '',
-    class: ''
+    class: '',
+    studentId: ''
   },
   rules: {
     username: [
@@ -274,7 +281,24 @@ const dialog = reactive({
       { required: true, message: '请输入姓名', trigger: 'blur' }
     ],
     class: [
-      { required: true, message: '请输入班级', trigger: 'blur' }
+      // 班级在学生角色下必填
+      { validator: (rule: any, value: string, callback: any) => {
+        if (dialog.form.role === 'student' && !value) {
+          callback(new Error('请输入班级'))
+        } else {
+          callback()
+        }
+      }, trigger: 'blur' }
+    ],
+    studentId: [
+      // 当角色为学生时，学号必填
+      { validator: (rule: any, value: string, callback: any) => {
+        if (dialog.form.role === 'student' && !value) {
+          callback(new Error('请输入学号'))
+        } else {
+          callback()
+        }
+      }, trigger: 'blur' }
     ]
   }
 })
@@ -364,7 +388,8 @@ const editUser = (row: any) => {
     password: '',
     role: row.role,
     name: row.name,
-    class: row.class || ''
+    class: row.class || '',
+    studentId: row.studentId || ''
   }
 }
 
@@ -415,6 +440,7 @@ const handleSubmit = async () => {
             name: dialog.form.name
           }
           if (dialog.form.class) updateData.class = dialog.form.class
+          if (dialog.form.studentId) updateData.studentId = dialog.form.studentId
           
           await userStore.updateUserInfo(dialog.currentId, updateData)
         } else {
@@ -438,7 +464,8 @@ const resetDialogForm = () => {
     password: '',
     role: 'student',
     name: '',
-    class: ''
+    class: '',
+    studentId: ''
   }
 }
 
@@ -462,7 +489,8 @@ const parseBatchData = () => {
         password: parts[1],
         role: parts[2] as 'admin' | 'teacher' | 'student',
         name: parts[3],
-        class: parts[4] || ''
+        class: parts[4] || '',
+        studentId: parts[5] || ''
       }
       
       // 验证基本格式
@@ -488,7 +516,28 @@ const submitBatchAdd = async () => {
     return
   }
 
+  // 预校验：对于 role === 'student' 的记录，若指定了 studentId 则验证该学号存在
   try {
+    // 加载学生（取大量结果以覆盖可能的学号）
+    await studentStore.fetchStudents({ page: 1, limit: 1000 })
+    const missing: string[] = []
+
+    for (const item of batchDialog.value.parsedData) {
+      if (item.role === 'student') {
+        if (!item.studentId) {
+          missing.push(`${item.username}（缺少学号）`)
+        } else {
+          const found = studentStore.students.find((s: any) => s.studentId === item.studentId)
+          if (!found) missing.push(`${item.username}（学号 ${item.studentId} 不存在）`)
+        }
+      }
+    }
+
+    if (missing.length > 0) {
+      ElMessage.warning(`导入前校验未通过：\n${missing.slice(0, 5).join('\n')}${missing.length > 5 ? '\n...' : ''}`)
+      return
+    }
+
     await userStore.importUsersData({ users: batchDialog.value.parsedData })
     batchDialog.value.visible = false
     loadData()

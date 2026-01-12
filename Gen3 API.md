@@ -119,6 +119,8 @@
 - 描述: 获取当前登录用户信息
 - 认证: 必需
 
+> 备注：User 对象可能包含可选字段 `studentId`（仅当 role 为 `student` 时），用于将用户绑定到学生记录，便于学生登录后直接查看自己的成绩。
+
 ### PUT /user/password
 - 描述: 用户自行修改密码
 - 请求体: `{ "oldPassword": "..", "newPassword": ".." }`
@@ -367,6 +369,14 @@
 ## 说明与注意事项 💡
 - 当前实现中有些查询参数为简化实现，使用了自定义 Header（例如 `X-Query-Role`）来模拟 URL query 参数；前端调用时建议使用标准 query string，如果需要我可以把文档和代码中的查询参数使用方式统一并补充示例。
 - 部分导出/打印/报表接口仅作示例（返回 JSON 或 HTML），生产应实现文件生成（Excel/PDF）与文件流返回。
+
+## 客户端实现说明 🛠️
+
+- 修复：前端 Token 管理器已改为直接调用后端验证接口 `GET /auth/verify`（`verifyToken`），避免与 `auth` store 的相互调用造成循环依赖。
+- 修复：选课相关接口已对齐文档，前端现在使用：
+  - `POST /courses/:id/enroll`（请求体：`{ "studentId": "S123" }`）
+  - `DELETE /courses/:id/enroll/:studentId`
+- 注意：客户端实现中导出/报表接口使用 `responseType: 'blob'`（下载文件流），请确保后端返回文件流；若后端返回 JSON，请在前端或后端做一致性调优。
 
 ---
 

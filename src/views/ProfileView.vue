@@ -26,6 +26,10 @@
               <span class="label">班级：</span>
               <span class="value">{{ authStore.user.class }}</span>
             </div>
+            <div class="info-item" v-if="authStore.user.studentId">
+              <span class="label">学号：</span>
+              <span class="value">{{ authStore.user.studentId }}</span>
+            </div>
             <div class="info-item">
               <span class="label">用户ID：</span>
               <span class="value">{{ authStore.user.id }}</span>

@@ -6,6 +6,8 @@ export interface User {
   role: 'admin' | 'teacher' | 'student'
   name: string
   class?: string
+  // 学生账号可选绑定学号（studentId），仅当 role === 'student' 时生效
+  studentId?: string
   createdAt?: string
   updatedAt?: string
 }
@@ -30,6 +32,8 @@ export interface UserFormData {
   role: 'admin' | 'teacher' | 'student'
   name: string
   class?: string
+  // 可选学号绑定，仅对学生生效
+  studentId?: string
 }
 
 export interface BatchUserRequest {

@@ -49,7 +49,7 @@
                 v-for="student in studentOptions"
                 :key="student.id"
                 :label="`${student.name} (${student.studentId})`"
-                :value="student.id"
+                :value="student.studentId"
               />
             </el-select>
           </el-form-item>
