@@ -64,7 +64,21 @@ export const deleteStudent = (id: string): Promise<void> => {
 
 // 批量导入学生
 export const importStudents = (data: { studentId: string; name: string; class: string; gender?: 'male' | 'female'; phone?: string; email?: string }[]): Promise<{ success: number; failed: number; message?: string }> => {
-  return request.post('/students/batch', { students: data })
+  // 过滤掉undefined和null值，确保数据清洁
+  const cleanData = data.map(item => {
+    const cleaned: any = {
+      studentId: item.studentId,
+      name: item.name,
+      class: item.class
+    }
+    if (item.gender) cleaned.gender = item.gender
+    if (item.phone) cleaned.phone = item.phone
+    if (item.email) cleaned.email = item.email
+    return cleaned
+  })
+  
+  // 按照后端接口文档（POST /students/batch）期望接收 "数组形式" 的 JSON body，这里直接发送数组以避免 400 错误
+  return request.post('/students/batch', cleanData)
 }
 
 // 导出学生数据

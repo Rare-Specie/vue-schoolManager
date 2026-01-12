@@ -18,6 +18,12 @@ export const useReportStore = defineStore('report', () => {
   const generateReportCard = async (params: ReportCardParams) => {
     loading.value = true
     try {
+      // 验证参数：必须有studentId或class
+      if (!params.studentId && !params.class) {
+        ElMessage.error('请提供学生学号或班级')
+        throw new Error('缺少必要的参数')
+      }
+
       const blob = await getReportCard(params)
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -33,7 +39,8 @@ export const useReportStore = defineStore('report', () => {
       ElMessage.success('成绩单生成成功')
       return blob
     } catch (error) {
-      ElMessage.error('成绩单生成失败')
+      console.error('成绩单生成错误:', error)
+      ElMessage.error('成绩单生成失败，请检查参数')
       throw error
     } finally {
       loading.value = false
@@ -44,6 +51,12 @@ export const useReportStore = defineStore('report', () => {
   const generateStatisticalReport = async (params: StatisticalReportParams) => {
     loading.value = true
     try {
+      // 验证必填参数
+      if (!params.type || !params.format) {
+        ElMessage.error('缺少必要的参数：type和format')
+        throw new Error('缺少必要的参数')
+      }
+
       const blob = await getStatisticalReport(params)
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
@@ -58,7 +71,8 @@ export const useReportStore = defineStore('report', () => {
       ElMessage.success('统计报表生成成功')
       return blob
     } catch (error) {
-      ElMessage.error('统计报表生成失败')
+      console.error('统计报表生成错误:', error)
+      ElMessage.error('统计报表生成失败，请检查参数')
       throw error
     } finally {
       loading.value = false
@@ -69,10 +83,17 @@ export const useReportStore = defineStore('report', () => {
   const preparePrintData = async (data: PrintData) => {
     loading.value = true
     try {
+      // 验证参数
+      if (!data.type || !data.data) {
+        ElMessage.error('缺少必要的打印参数')
+        throw new Error('参数验证失败')
+      }
+
       const result = await preparePrint(data)
       return result
     } catch (error) {
-      ElMessage.error('打印准备失败')
+      console.error('打印准备错误:', error)
+      ElMessage.error('打印准备失败，请检查参数')
       throw error
     } finally {
       loading.value = false
@@ -83,6 +104,12 @@ export const useReportStore = defineStore('report', () => {
   const executeBatchPrint = async (data: { type: string; items: any[] }) => {
     loading.value = true
     try {
+      // 验证参数
+      if (!data.type || !data.items || data.items.length === 0) {
+        ElMessage.error('缺少必要的参数或数据为空')
+        throw new Error('参数验证失败')
+      }
+
       const result = await batchPrint(data)
       if (result.failed > 0) {
         ElMessage.warning(`打印完成：成功 ${result.success} 项，失败 ${result.failed} 项`)
@@ -91,7 +118,8 @@ export const useReportStore = defineStore('report', () => {
       }
       return result
     } catch (error) {
-      ElMessage.error('批量打印失败')
+      console.error('批量打印错误:', error)
+      ElMessage.error('批量打印失败，请检查参数')
       throw error
     } finally {
       loading.value = false

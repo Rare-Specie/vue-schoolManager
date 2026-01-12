@@ -71,8 +71,8 @@
       <!-- 分页 -->
       <div class="pagination-container">
         <el-pagination
-          v-model:current-page="pagination.page"
-          v-model:page-size="pagination.limit"
+          :current-page="pagination.page"
+          :page-size="pagination.limit"
           :total="studentStore.total"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
@@ -135,19 +135,48 @@
     >
       <div class="import-content">
         <el-alert
-          title="请粘贴JSON格式的学生数据，格式为：[{'studentId':'2024001','name':'张三','class':'计算机2401'}]"
+          title="请粘贴JSON格式的学生数据"
           type="info"
           :closable="false"
           style="margin-bottom: 16px"
         />
+        <el-row :gutter="16" style="margin-bottom: 12px">
+          <el-col :span="12">
+            <el-button type="primary" plain @click="downloadTemplate" style="width: 100%">
+              下载导入模板
+            </el-button>
+          </el-col>
+          <el-col :span="12">
+            <el-button type="success" plain @click="showExample" style="width: 100%">
+              查看示例
+            </el-button>
+          </el-col>
+        </el-row>
         <el-input
           v-model="importDialog.jsonData"
           type="textarea"
-          :rows="10"
-          placeholder='[{"studentId": "2024001", "name": "张三", "class": "计算机2401", "gender": "male", "phone": "13800138000", "email": "zhangsan@example.com"}]'
+          :rows="12"
+          placeholder='请粘贴JSON数据，格式示例：
+[
+  {
+    "studentId": "2024001",
+    "name": "张三",
+    "class": "计算机2401",
+    "gender": "male",
+    "phone": "13800138000",
+    "email": "zhangsan@example.com"
+  }
+]
+
+必填字段：studentId, name, class
+可选字段：gender, phone, email'
         />
-        <div class="template-download" style="margin-top: 12px">
-          <el-button type="text" @click="downloadTemplate">下载JSON导入模板</el-button>
+        <div style="margin-top: 12px; font-size: 12px; color: #666;">
+          <p>📌 <strong>导入规则：</strong></p>
+          <p>• 单次最多导入 1000 条数据</p>
+          <p>• 学号必须唯一，格式为字母数字组合</p>
+          <p>• 手机号为11位数字，邮箱需符合格式</p>
+          <p>• 性别可选：male（男）或 female（女）</p>
         </div>
       </div>
       <template #footer>
@@ -234,19 +263,33 @@ const importDialog = reactive({
 })
 
 // 加载数据
-const loadData = async () => {
-  await studentStore.fetchStudents({
+const loadData = async (page?: number, limit?: number) => {
+  // 优先使用显式传参（来自分页事件），否则使用当前 pagination
+  const reqPage = typeof page === 'number' ? page : pagination.page
+  const reqLimit = typeof limit === 'number' ? limit : pagination.limit
+
+  console.log('[StudentList] loadData -> page:', reqPage, 'limit:', reqLimit, 'search:', searchForm)
+
+  const response = await studentStore.fetchStudents({
     class: searchForm.class,
     search: searchForm.search,
-    page: pagination.page,
-    limit: pagination.limit
+    page: reqPage,
+    limit: reqLimit
   })
+
+  // 如果后端返回 page/limit，优先以后端为准；否则使用请求时的值，确保 UI 与请求一致
+  if (response) {
+    const respPage = typeof response.page === 'number' ? response.page : reqPage
+    const respLimit = typeof response.limit === 'number' ? response.limit : reqLimit
+    if (pagination.page !== respPage) pagination.page = respPage
+    if (pagination.limit !== respLimit) pagination.limit = respLimit
+  }
 }
 
 // 搜索
 const handleSearch = () => {
   pagination.page = 1
-  loadData()
+  loadData(1, pagination.limit)
 }
 
 // 重置搜索
@@ -254,19 +297,21 @@ const resetSearch = () => {
   searchForm.class = ''
   searchForm.search = ''
   pagination.page = 1
-  loadData()
+  loadData(1, pagination.limit)
 }
 
 // 分页处理
 const handlePageChange = (page: number) => {
+  console.log('[StudentList] handlePageChange ->', page)
   pagination.page = page
-  loadData()
+  loadData(page, pagination.limit)
 }
 
 const handleSizeChange = (size: number) => {
+  console.log('[StudentList] handleSizeChange ->', size)
   pagination.limit = size
   pagination.page = 1
-  loadData()
+  loadData(1, size)
 }
 
 // 显示添加对话框
@@ -354,6 +399,36 @@ const showImportDialog = () => {
   importDialog.jsonData = ''
 }
 
+// 显示示例数据
+const showExample = () => {
+  const example = [
+    {
+      "studentId": "2024001",
+      "name": "张三",
+      "class": "计算机2401",
+      "gender": "male",
+      "phone": "13800138000",
+      "email": "zhangsan@example.com"
+    },
+    {
+      "studentId": "2024002",
+      "name": "李四",
+      "class": "计算机2401",
+      "gender": "female",
+      "phone": "13800138001",
+      "email": "lisi@example.com"
+    },
+    {
+      "studentId": "2024003",
+      "name": "王五",
+      "class": "计算机2402",
+      "gender": "male"
+    }
+  ]
+  
+  importDialog.jsonData = JSON.stringify(example, null, 2)
+}
+
 // 开始导入
 const handleImport = async () => {
   if (!importDialog.jsonData.trim()) {
@@ -369,31 +444,127 @@ const handleImport = async () => {
     }
     
     // 验证数据格式
-    const isValid = data.every(item => 
-      item.studentId && item.name && item.class
-    )
-    
-    if (!isValid) {
-      ElMessage.error('数据格式错误：每条记录必须包含studentId、name和class字段')
+    if (data.length === 0) {
+      ElMessage.warning('数据不能为空')
       return
     }
 
-    await studentStore.importStudentsData(data)
+    // 批量大小限制
+    if (data.length > 1000) {
+      ElMessage.warning('单次导入不能超过1000条数据')
+      return
+    }
+
+    // 详细验证每条记录
+    const errors: string[] = []
+    const validData = data.filter((item, index) => {
+      const row = index + 1
+      const errs: string[] = []
+      
+      if (!item.studentId) errs.push('学号')
+      if (!item.name) errs.push('姓名')
+      if (!item.class) errs.push('班级')
+      
+      // 验证学号格式（假设学号为数字或字母数字组合）
+      if (item.studentId && !/^[a-zA-Z0-9]+$/.test(item.studentId)) {
+        errs.push('学号格式不正确')
+      }
+      
+      // 验证手机号（如果存在）
+      if (item.phone && !/^1[3-9]\d{9}$/.test(item.phone)) {
+        errs.push('手机号格式不正确')
+      }
+      
+      // 验证邮箱（如果存在）
+      if (item.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(item.email)) {
+        errs.push('邮箱格式不正确')
+      }
+      
+      // 验证性别（如果存在）
+      if (item.gender && !['male', 'female'].includes(item.gender)) {
+        errs.push('性别必须是male或female')
+      }
+      
+      if (errs.length > 0) {
+        errors.push(`第${row}行: ${errs.join(', ')}`)
+        return false
+      }
+      return true
+    })
+
+    if (errors.length > 0) {
+      ElMessage.error(`数据验证失败：\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...等' + errors.length + '个错误' : ''}`)
+      return
+    }
+
+    if (validData.length === 0) {
+      ElMessage.warning('没有有效的数据')
+      return
+    }
+
+    // 确认导入
+    try {
+      await ElMessageBox.confirm(
+        `准备导入 ${validData.length} 条学生数据，是否继续？`,
+        '导入确认',
+        { type: 'warning' }
+      )
+    } catch (cancel) {
+      return
+    }
+
+    await studentStore.importStudentsData(validData)
     importDialog.visible = false
     loadData()
   } catch (error) {
-    ElMessage.error('JSON格式错误，请检查输入')
+    if (error instanceof SyntaxError) {
+      ElMessage.error('JSON格式错误，请检查输入')
+    } else {
+      ElMessage.error('导入过程出错')
+    }
+    console.error('导入错误:', error)
   }
 }
 
 // 下载模板
 const downloadTemplate = () => {
   const templateData = [
-    {"studentId": "2024001", "name": "张三", "class": "计算机2401", "gender": "male", "phone": "13800138000", "email": "zhangsan@example.com"},
-    {"studentId": "2024002", "name": "李四", "class": "计算机2401", "gender": "female", "phone": "13800138001", "email": "lisi@example.com"}
+    {
+      "studentId": "2024001",
+      "name": "张三",
+      "class": "计算机2401",
+      "gender": "male",
+      "phone": "13800138000",
+      "email": "zhangsan@example.com"
+    },
+    {
+      "studentId": "2024002",
+      "name": "李四",
+      "class": "计算机2401",
+      "gender": "female",
+      "phone": "13800138001",
+      "email": "lisi@example.com"
+    },
+    {
+      "studentId": "2024003",
+      "name": "王五",
+      "class": "计算机2402",
+      "gender": "male"
+      // phone和email为可选字段
+    }
   ]
   
-  const content = JSON.stringify(templateData, null, 2)
+  const templateInfo = {
+    description: "学生数据导入模板",
+    requiredFields: ["studentId", "name", "class"],
+    optionalFields: ["gender", "phone", "email"],
+    genderValues: "male 或 female",
+    phoneFormat: "11位手机号，如：13800138000",
+    emailFormat: "有效邮箱格式",
+    data: templateData
+  }
+  
+  const content = JSON.stringify(templateInfo, null, 2)
   const blob = new Blob([content], { type: 'application/json;charset=utf-8;' })
   const url = window.URL.createObjectURL(blob)
   const link = document.createElement('a')

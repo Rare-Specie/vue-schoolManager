@@ -42,7 +42,7 @@ export class AuthMonitor {
     }, 30 * 1000)
 
     this.isMonitoring.value = true
-    console.log('登录状态监控已启动')
+    // 登录状态监控已启动
   }
 
   // 停止监控

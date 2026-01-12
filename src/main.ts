@@ -25,7 +25,7 @@ let errorCount = 0
 const MAX_ERROR_COUNT = 10
 
 app.config.errorHandler = (err, vm, info) => {
-  // 打印到控制台供调试
+  // 全局错误处理：在控制台记录错误信息以便排查
   // eslint-disable-next-line no-console
   console.error('全局错误捕获:', err, info)
   
@@ -96,7 +96,7 @@ const initializeApp = async () => {
     
     Promise.race([initPromise, timeoutPromise]).catch(() => {
       // 初始化失败也没关系，会在路由守卫中处理
-      console.log('自动初始化失败，等待路由守卫处理')
+      // 初始化超时或失败，路由守卫会接手处理
     })
   }
   

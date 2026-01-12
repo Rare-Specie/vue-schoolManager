@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>选课管理调试</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f5f5f5; }
+        .container { max-width: 1200px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; border-radius: 4px; }
+        .section h3 { margin-top: 0; color: #333; }
+        .success { color: #67c23a; background: #f0f9eb; padding: 8px; border-radius: 4px; }
+        .error { color: #f56c6c; background: #fef0f0; padding: 8px; border-radius: 4px; }
+        .warning { color: #e6a23c; background: #fdf6ec; padding: 8px; border-radius: 4px; }
+        .info { color: #909399; background: #f4f4f5; padding: 8px; border-radius: 4px; }
+        .code { background: #f6f8fa; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 12px; overflow-x: auto; }
+        button { padding: 8px 16px; margin: 5px; border: none; border-radius: 4px; cursor: pointer; }
+        button.primary { background: #409eff; color: white; }
+        button.success { background: #67c23a; color: white; }
+        button.danger { background: #f56c6c; color: white; }
+        .test-result { margin: 10px 0; padding: 10px; border-left: 4px solid #409eff; background: #f0f9eb; }
+        .test-error { border-left-color: #f56c6c; background: #fef0f0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 选课管理页面调试工具</h1>
+        <p>用于诊断"界面加载失败"问题</p>
+
+        <div class="section">
+            <h3>1. 检查网络连接</h3>
+            <button class="primary" onclick="testNetwork()">测试网络连接</button>
+            <div id="network-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>2. 检查API端点</h3>
+            <button class="primary" onclick="testAPIEndpoints()">测试API端点</button>
+            <div id="api-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>3. 检查认证状态</h3>
+            <button class="primary" onclick="checkAuth()">检查认证状态</button>
+            <div id="auth-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>4. 模拟页面加载</h3>
+            <button class="success" onclick="simulatePageLoad()">模拟页面加载流程</button>
+            <div id="load-result"></div>
+        </div>
+
+        <div class="section">
+            <h3>5. 查看浏览器控制台</h3>
+            <div class="info">
+                请按 F12 打开开发者工具，查看 Console 标签页是否有错误信息。<br>
+                特别关注：<br>
+                - 红色错误信息<br>
+                - 网络请求失败 (404, 500, CORS等)<br>
+                - 未捕获的异常
+            </div>
+        </div>
+
+        <div class="section">
+            <h3>6. 常见问题检查清单</h3>
+            <div id="checklist">
+                <div>□ 后端服务是否启动？</div>
+                <div>□ API地址是否正确？</div>
+                <div>□ 是否有跨域问题？</div>
+                <div>□ 用户是否已登录？</div>
+                <div>□ Token是否有效？</div>
+                <div>□ 浏览器是否有缓存问题？</div>
+            </div>
+            <button onclick="clearCache()">清除浏览器缓存</button>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = '/api';
+
+        function showResult(elementId, content, isError = false) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            
+            const div = document.createElement('div');
+            div.className = isError ? 'test-result test-error' : 'test-result';
+            div.innerHTML = content;
+            el.innerHTML = '';
+            el.appendChild(div);
+        }
+
+        async function testNetwork() {
+            const resultEl = document.getElementById('network-result');
+            try {
+                // 测试是否能访问服务器
+                const response = await fetch('/');
+                showResult('network-result', `<div class="success">✅ 网络连接正常 - 服务器响应: ${response.status}</div>`);
+            } catch (error) {
+                showResult('network-result', `<div class="error">❌ 网络连接失败: ${error.message}<br>请检查：<br>1. 服务器是否运行<br>2. 是否有跨域问题<br>3. 网络防火墙设置</div>`, true);
+            }
+        }
+
+        async function testAPIEndpoints() {
+            const resultEl = document.getElementById('api-result');
+            const endpoints = [
+                { name: '课程列表', url: '/courses' },
+                { name: '学生列表', url: '/students' },
+                { name: '认证状态', url: '/auth/status' }
+            ];
+
+            let results = [];
+            
+            for (const endpoint of endpoints) {
+                try {
+                    const response = await fetch(`${API_BASE}${endpoint.url}`, {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        results.push(`<div class="success">✅ ${endpoint.name}: ${response.status}</div>`);
+                    } else if (response.status === 401) {
+                        results.push(`<div class="warning">⚠️ ${endpoint.name}: ${response.status} (需要登录)</div>`);
+                    } else if (response.status === 404) {
+                        results.push(`<div class="error">❌ ${endpoint.name}: ${response.status} (接口不存在)</div>`);
+                    } else {
+                        results.push(`<div class="warning">⚠️ ${endpoint.name}: ${response.status}</div>`);
+                    }
+                } catch (error) {
+                    results.push(`<div class="error">❌ ${endpoint.name}: ${error.message}</div>`);
+                }
+            }
+            
+            showResult('api-result', results.join(''));
+        }
+
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            const userInfo = localStorage.getItem('userInfo');
+            const resultEl = document.getElementById('auth-result');
+            
+            let results = [];
+            
+            if (token) {
+                results.push(`<div class="success">✅ Token存在: ${token.substring(0, 20)}...</div>`);
+            } else {
+                results.push(`<div class="error">❌ Token不存在 - 用户可能未登录</div>`);
+            }
+            
+            if (userInfo) {
+                try {
+                    const user = JSON.parse(userInfo);
+                    results.push(`<div class="success">✅ 用户信息存在: ${user.username || user.name}</div>`);
+                } catch (e) {
+                    results.push(`<div class="warning">⚠️ 用户信息格式错误</div>`);
+                }
+            } else {
+                results.push(`<div class="error">❌ 用户信息不存在</div>`);
+            }
+            
+            showResult('auth-result', results.join(''));
+        }
+
+        async function simulatePageLoad() {
+            const resultEl = document.getElementById('load-result');
+            const steps = [];
+            
+            steps.push('<div>开始模拟选课管理页面加载流程...</div>');
+            
+            // 步骤1: 检查认证
+            const token = localStorage.getItem('token');
+            if (!token) {
+                showResult('load-result', `<div class="error">❌ 加载失败: 用户未登录<br><a href="/login" style="color: #409eff;">请先登录</a></div>`, true);
+                return;
+            }
+            steps.push('<div class="success">✅ 1. 认证检查通过</div>');
+            
+            // 步骤2: 加载课程
+            try {
+                const coursesResp = await fetch(`${API_BASE}/courses?page=1&limit=200`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!coursesResp.ok) throw new Error(`课程加载失败: ${coursesResp.status}`);
+                const coursesData = await coursesResp.json();
+                steps.push(`<div class="success">✅ 2. 课程加载成功 (${coursesData.data?.length || 0} 门课程)</div>`);
+            } catch (e) {
+                steps.push(`<div class="error">❌ 2. 课程加载失败: ${e.message}</div>`);
+                showResult('load-result', steps.join(''), true);
+                return;
+            }
+            
+            // 步骤3: 加载学生
+            try {
+                const studentsResp = await fetch(`${API_BASE}/students?page=1&limit=1000`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!studentsResp.ok) throw new Error(`学生加载失败: ${studentsResp.status}`);
+                const studentsData = await studentsResp.json();
+                steps.push(`<div class="success">✅ 3. 学生加载成功 (${studentsData.data?.length || 0} 名学生)</div>`);
+            } catch (e) {
+                steps.push(`<div class="error">❌ 3. 学生加载失败: ${e.message}</div>`);
+                showResult('load-result', steps.join(''), true);
+                return;
+            }
+            
+            steps.push('<div class="success"><strong>✅ 页面加载流程完成 - 请检查浏览器控制台是否有其他错误</strong></div>');
+            showResult('load-result', steps.join(''));
+        }
+
+        function clearCache() {
+            localStorage.clear();
+            sessionStorage.clear();
+            if ('caches' in window) {
+                caches.keys().then(names => {
+                    names.forEach(name => caches.delete(name));
+                });
+            }
+            alert('缓存已清除，请刷新页面重试');
+        }
+
+        // 页面加载时自动运行基础检查
+        window.addEventListener('DOMContentLoaded', () => {
+            setTimeout(() => {
+                checkAuth();
+            }, 500);
+        });
+    </script>
+</body>
+</html>

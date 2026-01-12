@@ -24,23 +24,39 @@ export interface PrintData {
 
 // 生成成绩单
 export const getReportCard = (params: ReportCardParams): Promise<Blob> => {
+  // 过滤掉undefined和null值
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v != null && v !== '')
+  )
+  
   return request.get('/reports/report-card', {
-    params,
+    params: cleanParams,
     responseType: 'blob'
   })
 }
 
 // 生成统计报表
 export const getStatisticalReport = (params: StatisticalReportParams): Promise<Blob> => {
+  // 过滤掉undefined和null值
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([_, v]) => v != null && v !== '')
+  )
+  
   return request.get('/reports/statistics', {
-    params,
+    params: cleanParams,
     responseType: 'blob'
   })
 }
 
 // 打印准备
 export const preparePrint = (data: PrintData): Promise<{ html: string }> => {
-  return request.post('/reports/print', data)
+  // 过滤掉undefined和null值
+  const cleanData = {
+    type: data.type,
+    data: data.data
+  }
+  
+  return request.post('/reports/print', cleanData)
 }
 
 // 批量打印
@@ -48,5 +64,11 @@ export const batchPrint = (data: {
   type: string
   items: any[]
 }): Promise<{ success: number; failed: number }> => {
-  return request.post('/reports/batch-print', data)
+  // 过滤掉undefined和null值
+  const cleanData = {
+    type: data.type,
+    items: data.items.filter(item => item != null)
+  }
+  
+  return request.post('/reports/batch-print', cleanData)
 }

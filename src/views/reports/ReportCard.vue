@@ -289,13 +289,25 @@ const generateReport = async () => {
     return
   }
 
+  // 构建参数，过滤掉空值
+  const params: any = {}
+  
+  if (selectForm.mode === 'student' && selectForm.studentId) {
+    params.studentId = selectForm.studentId
+  }
+  if (selectForm.mode === 'class' && selectForm.class) {
+    params.class = selectForm.class
+  }
+  if (selectForm.semester) {
+    params.semester = selectForm.semester
+  }
+
+
+
   try {
-    await reportStore.generateReportCard({
-      studentId: selectForm.studentId,
-      class: selectForm.class,
-      semester: selectForm.semester
-    })
+    await reportStore.generateReportCard(params)
   } catch (error) {
+    console.error('成绩单生成错误:', error)
     // 错误已在store中处理
   }
 }
@@ -314,10 +326,14 @@ const previewReport = async () => {
   // 模拟预览数据（实际应从API获取）
   if (selectForm.mode === 'student') {
     // 模拟单个学生成绩单
+    const studentName = selectForm.studentId === '2024001' ? '张三' : 
+                       selectForm.studentId === '2024002' ? '李四' : '未知学生'
+    const studentClass = selectForm.studentId === '2024001' ? '计算机2401' : '计算机2402'
+    
     previewData.value = [{
       studentId: selectForm.studentId,
-      name: '张三',
-      class: '计算机2401',
+      name: studentName,
+      class: studentClass,
       grades: [
         { courseId: 'CS101', courseName: '程序设计基础', credit: 3, score: 85 },
         { courseId: 'CS102', courseName: '数据结构', credit: 4, score: 92 },
@@ -333,11 +349,12 @@ const previewReport = async () => {
     }]
   } else {
     // 模拟班级成绩单
+    const semester = selectForm.semester || '2024-2025学年第一学期'
     previewData.value = [
-      { studentId: '2024001', studentName: '张三', courseName: '程序设计基础', score: 85, semester: selectForm.semester },
-      { studentId: '2024001', studentName: '张三', courseName: '数据结构', score: 92, semester: selectForm.semester },
-      { studentId: '2024002', studentName: '李四', courseName: '程序设计基础', score: 76, semester: selectForm.semester },
-      { studentId: '2024002', studentName: '李四', courseName: '数据结构', score: 88, semester: selectForm.semester }
+      { studentId: '2024001', studentName: '张三', courseName: '程序设计基础', score: 85, semester },
+      { studentId: '2024001', studentName: '张三', courseName: '数据结构', score: 92, semester },
+      { studentId: '2024002', studentName: '李四', courseName: '程序设计基础', score: 76, semester },
+      { studentId: '2024002', studentName: '李四', courseName: '数据结构', score: 88, semester }
     ]
   }
 
@@ -412,16 +429,26 @@ const executeBatchPrint = async () => {
       ? form.classes.split(',').map(c => c.trim()).filter(c => c)
       : form.students
 
-    await reportStore.executeBatchPrint({
+    if (items.length === 0) {
+      ElMessage.warning('没有有效的数据')
+      return
+    }
+
+    const params = {
       type: form.type,
       items: items.map(item => ({
         id: item,
-        semester: form.semester
-      }))
-    })
+        semester: form.semester || undefined
+      })).filter(item => item.id) // 过滤掉空ID
+    }
+
+
+
+    await reportStore.executeBatchPrint(params)
 
     batchDialog.value.visible = false
   } catch (error) {
+    console.error('批量打印错误:', error)
     // 错误已在store中处理
   }
 }

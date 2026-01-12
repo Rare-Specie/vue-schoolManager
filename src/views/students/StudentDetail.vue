@@ -54,52 +54,94 @@
           </el-card>
         </el-col>
 
-        <!-- 成绩概览 -->
+        <!-- 右侧：成绩概览 + 选课管理 -->
         <el-col :span="12">
           <el-card class="box-card">
-            <template #header>
-              <div class="card-header">
-                <span>成绩概览</span>
-                <el-button size="small" type="success" @click="refreshGrades">刷新</el-button>
-              </div>
-            </template>
-            <div v-if="gradesOverview" class="grades-overview">
-              <div class="grade-stats">
-                <div class="stat-item">
-                  <div class="stat-value">{{ gradesOverview.totalCourses || 0 }}</div>
-                  <div class="stat-label">总课程数</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">{{ gradesOverview.avgScore?.toFixed(1) || 0 }}</div>
-                  <div class="stat-label">平均分</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">{{ gradesOverview.passRate || 0 }}%</div>
-                  <div class="stat-label">及格率</div>
-                </div>
-                <div class="stat-item">
-                  <div class="stat-value">{{ gradesOverview.totalScore || 0 }}</div>
-                  <div class="stat-label">总分</div>
-                </div>
-              </div>
+            <el-tabs v-model="activeTab" type="border-card">
+              <el-tab-pane label="成绩概览" name="grades">
+                <template #header>
+                  <div class="card-header">
+                    <span>成绩概览</span>
+                    <el-button size="small" type="success" @click="refreshGrades">刷新</el-button>
+                  </div>
+                </template>
 
-              <el-divider>最近成绩</el-divider>
-              
-              <el-table :data="gradesOverview.recentGrades || []" size="small" border>
-                <el-table-column prop="courseName" label="课程" />
-                <el-table-column prop="score" label="成绩" width="80" align="center">
-                  <template #default="{ row }">
-                    <el-tag :type="getScoreTagType(row.score)">
-                      {{ row.score }}
-                    </el-tag>
-                  </template>
-                </el-table-column>
-                <el-table-column prop="semester" label="学期" width="100" align="center" />
-              </el-table>
-            </div>
-            <div v-else class="empty-state">
-              <el-empty description="暂无成绩数据" />
-            </div>
+                <div v-if="gradesOverview" class="grades-overview">
+                  <div class="grade-stats">
+                    <div class="stat-item">
+                      <div class="stat-value">{{ gradesOverview.totalCourses || 0 }}</div>
+                      <div class="stat-label">总课程数</div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-value">{{ gradesOverview.avgScore?.toFixed(1) || 0 }}</div>
+                      <div class="stat-label">平均分</div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-value">{{ gradesOverview.passRate || 0 }}%</div>
+                      <div class="stat-label">及格率</div>
+                    </div>
+                    <div class="stat-item">
+                      <div class="stat-value">{{ gradesOverview.totalScore || 0 }}</div>
+                      <div class="stat-label">总分</div>
+                    </div>
+                  </div>
+
+                  <el-divider>最近成绩</el-divider>
+                  
+                  <el-table :data="gradesOverview.recentGrades || []" size="small" border>
+                    <el-table-column prop="courseName" label="课程" />
+                    <el-table-column prop="score" label="成绩" width="80" align="center">
+                      <template #default="{ row }">
+                        <el-tag :type="getScoreTagType(row.score)">
+                          {{ row.score }}
+                        </el-tag>
+                      </template>
+                    </el-table-column>
+                    <el-table-column prop="semester" label="学期" width="100" align="center" />
+                  </el-table>
+                </div>
+                <div v-else class="empty-state">
+                  <el-empty description="暂无成绩数据" />
+                </div>
+              </el-tab-pane>
+
+              <el-tab-pane label="选课管理" name="enrollment" v-if="authStore.isAdmin || authStore.isTeacher">
+                <div class="section-title">学生选课管理</div>
+                <el-form :inline="true" :model="enrollmentForm" class="enrollment-form">
+                  <el-form-item label="选择课程" prop="courseId">
+                    <el-select
+                      v-model="enrollmentForm.courseId"
+                      placeholder="请选择课程"
+                      filterable
+                      clearable
+                      style="width: 220px"
+                    >
+                      <el-option
+                        v-for="course in courseOptions"
+                        :key="course.id"
+                        :label="`${course.name} (${course.courseId})`"
+                        :value="course.id"
+                      />
+                    </el-select>
+                  </el-form-item>
+                  <el-form-item>
+                    <el-button type="success" @click="enrollStudentForCurrentStudent" :disabled="!enrollmentForm.courseId" size="small">添加选课</el-button>
+                    <el-button type="info" @click="refreshStudentEnrollments" size="small">刷新已选</el-button>
+                  </el-form-item>
+                </el-form>
+
+                <el-table :data="enrolledCourses" size="small" border style="margin-top: 12px;">
+                  <el-table-column type="index" label="序号" width="60" align="center" />
+                  <el-table-column prop="courseId" label="课程编号" width="120" align="center" />
+                  <el-table-column prop="courseName" label="课程名称" />
+                  <el-table-column label="操作" width="100" align="center">
+                    <template #default="{ row }">
+                      <el-button size="small" type="danger" @click="unenrollStudentFromCourseConfirm(row.courseId)" :icon="Delete">移除</el-button>
+                    </template>
+                  </el-table-column>
+                </el-table>
+              </el-tab-pane>
+            </el-tabs>
           </el-card>
         </el-col>
       </el-row>
@@ -180,8 +222,12 @@
 import { ref, onMounted, computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useStudentStore } from '@/stores/student'
+import { useCourseStore } from '@/stores/course'
+import { useGradeStore } from '@/stores/grade'
+import { useAuthStore } from '@/stores/auth'
 import { getOperationLogs } from '@/stores/api/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
+import { Delete } from '@element-plus/icons-vue'
 import type { FormInstance } from 'element-plus'
 
 const router = useRouter()
@@ -189,6 +235,17 @@ const route = useRoute()
 const studentStore = useStudentStore()
 
 const studentId = route.params.id as string
+
+// stores
+const courseStore = useCourseStore()
+const gradeStore = useGradeStore()
+const authStore = useAuthStore()
+
+// 选项与表单
+const activeTab = ref('grades')
+const enrollmentForm = ref({ courseId: '' })
+const courseOptions = computed(() => courseStore.courses)
+const enrolledCourses = ref<any[]>([])
 
 // 成绩概览
 const gradesOverview = ref<any>(null)
@@ -231,6 +288,9 @@ const loadStudentDetail = async () => {
     // 加载成绩概览，使用 student 的学号（studentId 字段）而非路由 id
     const sid = studentStore.currentStudent?.studentId
     await loadGradesOverview(sid)
+    // 加载课程选项和学生已选课程
+    await loadCourses()
+    await loadStudentEnrollments(sid)
     // 加载操作日志
     await loadOperationLogs()
   } catch (error) {
@@ -261,6 +321,78 @@ const loadOperationLogs = async () => {
     operationLogs.value = response.data
   } catch (error) {
     operationLogs.value = []
+  }
+}
+
+// 加载课程列表
+const loadCourses = async () => {
+  await courseStore.fetchCourses({ page: 1, limit: 100 })
+}
+
+// 加载学生的已选课程（从成绩记录中派生）
+const loadStudentEnrollments = async (sid?: string) => {
+  if (!sid) {
+    enrolledCourses.value = []
+    return
+  }
+  try {
+    const response = await gradeStore.fetchGrades({ studentId: sid, page: 1, limit: 1000 })
+    const grades = response.data || []
+    const map = new Map<string, any>()
+    for (const g of grades) {
+      if (!map.has(g.courseId)) {
+        map.set(g.courseId, { courseId: g.courseId, courseName: g.courseName })
+      }
+    }
+    enrolledCourses.value = Array.from(map.values())
+  } catch (error) {
+    enrolledCourses.value = []
+  }
+}
+
+// 刷新学生已选课程
+const refreshStudentEnrollments = () => {
+  const sid = studentStore.currentStudent?.studentId
+  loadStudentEnrollments(sid)
+}
+
+// 为当前学生添加选课
+const enrollStudentForCurrentStudent = async () => {
+  const sid = studentStore.currentStudent?.studentId
+  const cid = enrollmentForm.value.courseId
+  if (!cid) {
+    ElMessage.warning('请选择课程')
+    return
+  }
+  if (!sid) {
+    ElMessage.warning('当前学生无学号，无法选课')
+    return
+  }
+  try {
+    await courseStore.enrollStudentToCourse(cid, sid)
+    enrollmentForm.value.courseId = ''
+    ElMessage.success('选课成功')
+    await loadStudentEnrollments(sid)
+  } catch (error) {
+    // 错误已在store中处理
+  }
+}
+
+// 取消学生选课（带确认）
+const unenrollStudentFromCourseConfirm = async (courseId: string) => {
+  try {
+    await ElMessageBox.confirm(
+      '确定要取消该学生的选课吗？这也会删除该学生的相关成绩记录。',
+      '警告',
+      { type: 'warning' }
+    )
+    const sid = studentStore.currentStudent?.studentId
+    if (!sid) return
+    await courseStore.unenrollStudentFromCourse(courseId, sid)
+    ElMessage.success('取消选课成功')
+    await loadStudentEnrollments(sid)
+  } catch (cancel) {
+    // 用户取消
   }
 }
 

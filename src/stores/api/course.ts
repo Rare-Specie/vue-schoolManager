@@ -66,7 +66,10 @@ export const deleteCourse = (id: string): Promise<void> => {
 
 // 获取选课学生列表
 export const getCourseStudents = (courseId: string): Promise<CourseStudent[]> => {
-  return request.get(`/courses/${courseId}/students`)
+  // 后端可能返回 { data: CourseStudent[] }（分页/封装）或直接返回数组，这里统一返回数组
+  return request.get(`/courses/${courseId}/students`).then((res: any) => {
+    return res && res.data ? res.data : res
+  })
 }
 
 // 学生选课

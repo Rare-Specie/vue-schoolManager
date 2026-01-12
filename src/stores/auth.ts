@@ -60,7 +60,7 @@ export const useAuthStore = defineStore('auth', () => {
   const init = async (force = false) => {
     // 防止重复初始化
     if (isInitializing) {
-      console.log('初始化正在进行中，跳过重复调用')
+      // 初始化已在进行中，跳过重复调用
       return false
     }
     

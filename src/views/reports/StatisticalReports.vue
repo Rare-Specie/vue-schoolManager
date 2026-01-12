@@ -359,6 +359,7 @@ const loadBasicData = async () => {
 
 // 生成报表
 const generateReport = async () => {
+  // 根据类型验证必填字段
   if (selectForm.type === 'class' && !selectForm.class) {
     ElMessage.warning('请输入班级')
     return
@@ -372,18 +373,34 @@ const generateReport = async () => {
     return
   }
 
+  // 构建参数，过滤掉空值和undefined
+  const params: any = {
+    type: selectForm.type,
+    format: selectForm.format
+  }
+
+  // 只有当有值时才添加到参数中
+  if (selectForm.class) params.class = selectForm.class
+  if (selectForm.courseId) params.courseId = selectForm.courseId
+  if (selectForm.studentId) params.studentId = selectForm.studentId
+  if (selectForm.semester) params.semester = selectForm.semester
+  
+  // 时间范围处理 - 只有当有值时才添加
+  if (selectForm.timeRange && selectForm.timeRange.length === 2) {
+    const startTime = selectForm.timeRange[0]
+    const endTime = selectForm.timeRange[1]
+    if (startTime && endTime) {
+      params.startTime = startTime
+      params.endTime = endTime
+    }
+  }
+
+
+
   try {
-    await reportStore.generateStatisticalReport({
-      type: selectForm.type,
-      format: selectForm.format,
-      class: selectForm.class,
-      courseId: selectForm.courseId,
-      studentId: selectForm.studentId,
-      semester: selectForm.semester,
-      startTime: selectForm.timeRange[0],
-      endTime: selectForm.timeRange[1]
-    })
+    await reportStore.generateStatisticalReport(params)
   } catch (error) {
+    console.error('报表生成错误:', error)
     // 错误已在store中处理
   }
 }
@@ -500,10 +517,14 @@ const batchPrintAll = async () => {
   ElMessage.info('批量打印功能演示：将生成多个统计报表并合并打印')
   
   // 实际实现中，这里会调用后端API生成多个报表
-  await previewReport()
-  setTimeout(() => {
-    printReport()
-  }, 500)
+  try {
+    await previewReport()
+    setTimeout(() => {
+      printReport()
+    }, 500)
+  } catch (error) {
+    console.error('批量打印错误:', error)
+  }
 }
 
 // 导出所有数据
@@ -515,6 +536,7 @@ const exportAllData = async () => {
     await generateReport()
     selectForm.format = originalFormat
   } catch (error) {
+    console.error('导出数据错误:', error)
     // 错误已在store中处理
   }
 }

@@ -76,13 +76,7 @@
               <span>学生管理</span>
             </template>
             <el-menu-item index="/main/students">学生列表</el-menu-item>
-          </el-sub-menu>
-
-          <el-sub-menu index="course-manage">
-            <template #title>
-              <el-icon><Notebook /></el-icon>
-              <span>课程管理</span>
-            </template>
+            <el-menu-item index="/main/students/enrollment">选课管理</el-menu-item>
             <el-menu-item index="/main/courses">课程列表</el-menu-item>
           </el-sub-menu>
 

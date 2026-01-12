@@ -90,7 +90,7 @@ export class SessionRecovery {
           
           const success = await Promise.race([initPromise, timeoutPromise])
           if (success) {
-            console.log('会话恢复成功')
+            // 会话恢复成功
             return true
           }
         } catch (error) {
@@ -172,7 +172,7 @@ export class SessionRecovery {
       return false
     }
 
-    console.log('检测到需要恢复的会话状态，尝试恢复...')
+    // 检测到需要恢复的会话状态，开始恢复流程
     
     // 显示恢复提示
     ElMessage.info('正在恢复登录状态...')

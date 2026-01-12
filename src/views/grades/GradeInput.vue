@@ -33,39 +33,7 @@
         </el-form-item>
       </el-form>
 
-      <!-- 学生选课区域 -->
-      <div class="enrollment-section" v-if="authStore.isAdmin || authStore.isTeacher">
-        <div class="section-title">学生选课管理</div>
-        <el-form :inline="true" :model="enrollmentForm" class="enrollment-form">
-          <el-form-item label="选择学生" prop="studentId">
-            <el-select
-              v-model="enrollmentForm.studentId"
-              placeholder="请选择学生"
-              filterable
-              clearable
-              style="width: 200px"
-            >
-              <el-option
-                v-for="student in studentOptions"
-                :key="student.id"
-                :label="`${student.name} (${student.studentId})`"
-                :value="student.studentId"
-              />
-            </el-select>
-          </el-form-item>
-          <el-form-item>
-            <el-button type="success" @click="enrollStudent" :icon="Plus" :disabled="!canEnroll">
-              添加选课
-            </el-button>
-            <el-button type="danger" @click="unenrollStudent" :icon="Minus" :disabled="!canUnenroll">
-              移除选课
-            </el-button>
-            <el-button type="info" @click="showEnrollmentDialog" :icon="User">
-              查看已选学生
-            </el-button>
-          </el-form-item>
-        </el-form>
-      </div>
+      <!-- 学生选课管理已移至学生详情页的“选课管理”Tab -->
 
       <div class="action-buttons" v-if="selectForm.courseId">
         <el-button type="success" @click="saveAllGrades" :icon="Check" :loading="gradeStore.loading">

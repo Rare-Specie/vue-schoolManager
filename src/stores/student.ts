@@ -94,15 +94,37 @@ export const useStudentStore = defineStore('student', () => {
   const importStudentsData = async (data: { studentId: string; name: string; class: string; gender?: 'male' | 'female'; phone?: string; email?: string }[]) => {
     loading.value = true
     try {
-      const result = await importStudents(data)
+      // 过滤掉空值和undefined
+      const cleanData = data.map(item => {
+        const cleaned: any = {
+          studentId: item.studentId,
+          name: item.name,
+          class: item.class
+        }
+        if (item.gender) cleaned.gender = item.gender
+        if (item.phone) cleaned.phone = item.phone
+        if (item.email) cleaned.email = item.email
+        return cleaned
+      })
+
+      const result = await importStudents(cleanData)
+      
       if (result.failed > 0) {
-        ElMessage.warning(`导入完成：成功 ${result.success} 条，失败 ${result.failed} 条`)
+        const message = `导入完成：成功 ${result.success} 条，失败 ${result.failed} 条`
+        if (result.message) {
+          ElMessage.warning(`${message}\n${result.message}`)
+        } else {
+          ElMessage.warning(message)
+        }
       } else {
         ElMessage.success(`成功导入 ${result.success} 条数据`)
       }
+      
       return result
-    } catch (error) {
-      ElMessage.error('导入失败')
+    } catch (error: any) {
+      console.error('导入错误:', error)
+      const errorMessage = error.response?.data?.message || error.message || '导入失败'
+      ElMessage.error(`导入失败：${errorMessage}`)
       throw error
     } finally {
       loading.value = false

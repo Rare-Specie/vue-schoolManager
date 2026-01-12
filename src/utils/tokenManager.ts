@@ -251,7 +251,7 @@ export class TokenManager {
         // 如果剩余时间很少，延长到24小时
         if (remainingTime < 10 * 60 * 1000) {
           this.setToken(currentToken, 24 * 60 * 60 * 1000)
-          console.log('Token已自动刷新，延长24小时')
+          // Token 已刷新，过期时间已延长
         }
       }
     } catch (error) {
