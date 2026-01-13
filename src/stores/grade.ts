@@ -5,7 +5,6 @@ import {
   createGrade,
   updateGrade,
   deleteGrade,
-  batchDeleteGrades,
   importGrades,
   exportGrades,
   getCourseGrades,
@@ -42,23 +41,10 @@ export const useGradeStore = defineStore('grade', () => {
   // 录入成绩
   const addGrade = async (data: GradeFormData) => {
     try {
-      console.log('=== Store addGrade 调用 ===')
-      console.log('传入数据:', data)
-      console.log('即将调用 createGrade API')
-      
       const grade = await createGrade(data)
-      
-      console.log('API 返回结果:', grade)
-      console.log('==========================')
-      
       ElMessage.success('成绩录入成功')
       return grade
     } catch (error: any) {
-      console.error('=== Store addGrade 错误 ===')
-      console.error('错误详情:', error)
-      console.error('响应数据:', error.response?.data)
-      console.error('状态码:', error.response?.status)
-      
       const errorMsg = error.response?.data?.message || 
                       error.response?.data?.error || 
                       error.message || 
@@ -72,12 +58,10 @@ export const useGradeStore = defineStore('grade', () => {
   // 更新成绩
   const updateGradeInfo = async (id: string, data: Partial<GradeFormData>) => {
     try {
-      console.log('调用updateGrade，参数:', { id, data })
       const grade = await updateGrade(id, data)
       ElMessage.success('成绩更新成功')
       return grade
     } catch (error: any) {
-      console.error('updateGrade失败:', error)
       const errorMsg = error.response?.data?.message || error.message || '成绩更新失败'
       ElMessage.error(`成绩更新失败: ${errorMsg}`)
       throw error
@@ -101,35 +85,7 @@ export const useGradeStore = defineStore('grade', () => {
     }
   }
 
-  // 批量删除成绩
-  const batchRemoveGrades = async (ids: string[]) => {
-    if (ids.length === 0) {
-      ElMessage.warning('没有要删除的成绩')
-      return
-    }
 
-    try {
-      console.log('调用批量删除API，IDs:', ids)
-      
-      // 使用批量删除API
-      const result = await batchDeleteGrades(ids)
-      
-      // 从列表中移除所有已删除的成绩
-      grades.value = grades.value.filter(g => !ids.includes(g.id))
-      
-      if (result.failed > 0) {
-        ElMessage.warning(`批量删除完成：成功 ${result.success} 条，失败 ${result.failed} 条`)
-      } else {
-        ElMessage.success(`成功删除 ${result.success} 条成绩`)
-      }
-      
-      return result
-    } catch (error) {
-      console.error('批量删除失败:', error)
-      ElMessage.error('批量删除失败')
-      throw error
-    }
-  }
 
   // 批量导入
   const importGradesData = async (data: { studentId: string; courseId: string; score: number }[]) => {
@@ -212,7 +168,6 @@ export const useGradeStore = defineStore('grade', () => {
     addGrade,
     updateGradeInfo,
     removeGrade,
-    batchRemoveGrades,
     importGradesData,
     exportGradesData,
     fetchCourseGrades,

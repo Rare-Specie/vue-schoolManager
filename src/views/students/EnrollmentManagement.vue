@@ -96,7 +96,11 @@ const refreshEnrolled = async () => {
   }
   loading.value = true
   try {
-    const students = await courseStore.fetchCourseStudents(form.value.courseId, 1000)
+    // 查找当前选中的课程，获取课程编号
+    // 使用课程的数据库ID
+    const courseId = form.value.courseId
+    
+    const students = await courseStore.fetchCourseStudents(courseId, 1000)
     enrolledStudents.value = students
   } catch (error) {
     // store already shows error, but also log for diagnosis
@@ -116,6 +120,8 @@ const batchEnroll = async () => {
 
   try {
     await ElMessageBox.confirm(`将为当前课程添加 ${form.value.studentIds.length} 名学生，是否继续？`, '确认批量添加', { type: 'warning' })
+    
+    // 使用课程的数据库ID
     const courseId = form.value.courseId
     const ids = form.value.studentIds
     let success = 0
@@ -131,7 +137,7 @@ const batchEnroll = async () => {
         continue
       }
       try {
-        // enroll (sequential to avoid backend stress)
+        // enroll (sequential to avoid backend stress) - 使用课程数据库ID
         await courseStore.enrollStudentToCourse(courseId, sid)
         success++
       } catch (e) {
@@ -141,6 +147,7 @@ const batchEnroll = async () => {
       }
     }
 
+    // 手动刷新选课学生列表（因为选课管理界面没有设置 currentCourse）
     await refreshEnrolled()
     let msg = `批量添加完成：成功 ${success}，跳过 ${skipped}`
     if (failed > 0) msg += `，失败 ${failed}`
@@ -157,7 +164,11 @@ const unenrollStudent = async (studentId: string) => {
   if (!form.value.courseId) return
   try {
     await ElMessageBox.confirm('确定要从课程中移除该学生吗？这也会删除其成绩记录。', '确认移除', { type: 'warning' })
-    await courseStore.unenrollStudentFromCourse(form.value.courseId, studentId)
+    
+    // 使用课程的数据库ID
+    const courseId = form.value.courseId
+    
+    await courseStore.unenrollStudentFromCourse(courseId, studentId)
     ElMessage.success('移除成功')
     await refreshEnrolled()
   } catch (cancel) {

@@ -372,7 +372,13 @@ const generateReport = async () => {
 
   // 只有当有值时才添加到参数中
   if (selectForm.class) params.class = selectForm.class
-  if (selectForm.courseId) params.courseId = selectForm.courseId
+  if (selectForm.courseId) {
+    // 查找课程，获取课程编号
+    const course = courseStore.courses.find(c => c.id === selectForm.courseId)
+    if (course) {
+      params.courseId = course.courseId
+    }
+  }
   if (selectForm.studentId) params.studentId = selectForm.studentId
   
   // 时间范围处理 - 只有当有值时才添加

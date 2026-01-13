@@ -259,18 +259,27 @@ const loadCourses = async () => {
 
 // 加载数据
 const loadData = async () => {
+  // 查找课程，获取课程编号
+  let courseCode = ''
+  if (searchForm.courseId) {
+    const course = courseStore.courses.find(c => c.id === searchForm.courseId)
+    if (course) {
+      courseCode = course.courseId
+    }
+  }
+
   // 加载班级统计
   if (searchForm.class || !searchForm.courseId) {
     await statisticsStore.fetchClassStats({
       class: searchForm.class,
-      courseId: searchForm.courseId
+      courseId: courseCode
     })
   }
 
   // 加载课程统计
   if (searchForm.courseId) {
     await statisticsStore.fetchCourseStats({
-      courseId: searchForm.courseId
+      courseId: courseCode
     })
     renderCourseChart()
   }
@@ -278,7 +287,7 @@ const loadData = async () => {
   // 加载分布数据
   await statisticsStore.fetchDistribution({
     class: searchForm.class,
-    courseId: searchForm.courseId
+    courseId: courseCode
   })
   renderDistributionChart()
 
@@ -295,10 +304,19 @@ const resetSearch = () => {
 
 // 加载排名
 const loadRanking = async () => {
+  // 查找课程，获取课程编号
+  let courseCode = ''
+  if (searchForm.courseId) {
+    const course = courseStore.courses.find(c => c.id === searchForm.courseId)
+    if (course) {
+      courseCode = course.courseId
+    }
+  }
+
   try {
     await statisticsStore.fetchRanking({
       class: searchForm.class,
-      courseId: searchForm.courseId,
+      courseId: courseCode,
       limit: rankingLimit.value
     })
   } catch (error) {
@@ -404,13 +422,22 @@ const renderDistributionChart = () => {
 
 // 导出报表
 const exportReport = async (format: 'pdf' | 'excel') => {
+  // 查找课程，获取课程编号
+  let courseCode = ''
+  if (searchForm.courseId) {
+    const course = courseStore.courses.find(c => c.id === searchForm.courseId)
+    if (course) {
+      courseCode = course.courseId
+    }
+  }
+
   const params: any = {
     type: searchForm.courseId ? 'course' : 'class',
     format
   }
 
   if (searchForm.class) params.class = searchForm.class
-  if (searchForm.courseId) params.courseId = searchForm.courseId
+  if (searchForm.courseId) params.courseId = courseCode
 
   try {
     await statisticsStore.generateStatReport(params)

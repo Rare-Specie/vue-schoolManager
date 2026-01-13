@@ -54,6 +54,15 @@
       </el-form>
 
       <div class="action-buttons">
+        <el-button 
+          type="danger" 
+          @click="batchDelete" 
+          :icon="Delete" 
+          :disabled="selectedRows.length === 0"
+          v-if="authStore.isAdmin || authStore.isTeacher"
+        >
+          批量删除 ({{ selectedRows.length }})
+        </el-button>
         <el-button type="success" @click="exportData('excel')" :icon="Download">导出Excel</el-button>
         <el-button type="info" @click="exportData('csv')" :icon="Document">导出CSV</el-button>
         <el-button type="warning" @click="printResults" :icon="Printer">打印</el-button>
@@ -251,7 +260,13 @@ const loadGrades = async () => {
   }
 
   if (searchForm.studentId) params.studentId = searchForm.studentId
-  if (searchForm.courseId) params.courseId = searchForm.courseId
+  if (searchForm.courseId) {
+    // 查找课程，获取课程编号
+    const course = courseStore.courses.find(c => c.id === searchForm.courseId)
+    if (course) {
+      params.courseId = course.courseId
+    }
+  }
   if (searchForm.class) params.class = searchForm.class
   if (searchForm.timeRange && searchForm.timeRange.length === 2) {
     params.startTime = searchForm.timeRange[0]
@@ -319,6 +334,66 @@ const deleteGrade = async (row: any) => {
     await loadGrades()
   } catch (cancel) {
     // 用户取消
+  }
+}
+
+// 批量删除成绩
+const batchDelete = async () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请先选择要删除的成绩')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要批量删除选中的 ${selectedRows.value.length} 条成绩记录吗？`,
+      '批量删除警告',
+      {
+        type: 'warning',
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消'
+      }
+    )
+
+    // 显示加载状态
+    gradeStore.loading = true
+
+    // 逐个删除选中的记录
+    let successCount = 0
+    let failCount = 0
+    const failMessages: string[] = []
+
+    for (const row of selectedRows.value) {
+      try {
+        // 使用 silent 模式避免重复显示成功消息
+        await gradeStore.removeGrade(row.id, true)
+        successCount++
+      } catch (error) {
+        failCount++
+        failMessages.push(`${row.studentName} - ${row.courseName}`)
+      }
+    }
+
+    // 显示结果
+    if (failCount === 0) {
+      ElMessage.success(`批量删除成功：${successCount} 条记录`)
+    } else {
+      ElMessage.warning(`批量删除完成：成功 ${successCount} 条，失败 ${failCount} 条`)
+      if (failMessages.length > 0) {
+        ElMessage.info(`失败记录：${failMessages.join('、')}`)
+      }
+    }
+
+    // 清空选择
+    selectedRows.value = []
+    
+    // 重新加载数据
+    await loadGrades()
+
+  } catch (cancel) {
+    // 用户取消
+  } finally {
+    gradeStore.loading = false
   }
 }
 

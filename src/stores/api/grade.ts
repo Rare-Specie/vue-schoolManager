@@ -49,16 +49,11 @@ export const getGrades = (params: GradeListParams = {}): Promise<GradeListRespon
 
 // 录入/更新成绩
 export const createGrade = (data: GradeFormData): Promise<Grade> => {
-  console.log('=== API createGrade 调用 ===')
-  console.log('URL: /grades')
-  console.log('请求数据:', JSON.stringify(data, null, 2))
-  console.log('===========================')
   return request.post('/grades', data)
 }
 
 // 更新成绩
 export const updateGrade = (id: string, data: Partial<GradeFormData>): Promise<Grade> => {
-  console.log('API updateGrade 调用，URL: /grades/' + id + ', 数据:', data)
   return request.put(`/grades/${id}`, data)
 }
 
@@ -67,15 +62,8 @@ export const deleteGrade = (id: string): Promise<void> => {
   return request.delete(`/grades/${id}`)
 }
 
-// 批量删除成绩
-export const batchDeleteGrades = (ids: string[]): Promise<{ success: number; failed: number }> => {
-  console.log('API batchDeleteGrades 调用，IDs:', ids)
-  return request.post('/grades/batch-delete', { ids })
-}
-
 // 批量导入成绩
 export const importGrades = (data: { studentId: string; courseId: string; score: number }[]): Promise<{ success: number; failed: number; message?: string }> => {
-  console.log('API importGrades 调用，数据:', data)
   return request.post('/grades/batch', { grades: data })
 }
 

@@ -74,6 +74,9 @@ export const deleteCourse = (id: string): Promise<void> => {
 // 获取选课学生列表
 export const getCourseStudents = (courseId: string, limit?: number): Promise<CourseStudent[]> => {
   // 后端可能返回 { data: CourseStudent[] }（分页/封装）或直接返回数组，这里统一返回数组
+  console.log('=== getCourseStudents 调用 ===')
+  console.log('courseId:', courseId, '类型:', typeof courseId)
+  console.log('URL:', `/courses/${courseId}/students`)
   const params: any = {}
   if (limit !== undefined) {
     params.limit = limit
@@ -86,11 +89,19 @@ export const getCourseStudents = (courseId: string, limit?: number): Promise<Cou
 // 学生选课
 export const enrollStudent = (courseId: string, studentId: string): Promise<any> => {
   // 使用 RESTful 路径：POST /courses/:id/enroll
+  console.log('=== enrollStudent 调用 ===')
+  console.log('courseId:', courseId, '类型:', typeof courseId)
+  console.log('studentId:', studentId)
+  console.log('URL:', `/courses/${courseId}/enroll`)
   return request.post(`/courses/${courseId}/enroll`, { studentId })
 }
 
 // 取消选课
 export const unenrollStudent = (courseId: string, studentId: string): Promise<any> => {
   // 使用 RESTful 路径：DELETE /courses/:id/enroll/:studentId
+  console.log('=== unenrollStudent 调用 ===')
+  console.log('courseId:', courseId, '类型:', typeof courseId)
+  console.log('studentId:', studentId)
+  console.log('URL:', `/courses/${courseId}/enroll/${studentId}`)
   return request.delete(`/courses/${courseId}/enroll/${studentId}`)
 }

@@ -35,25 +35,7 @@
         <el-button type="warning" @click="showBatchDialog" :icon="EditPen">批量录入</el-button>
         <el-button type="info" @click="showImportDialog" :icon="Upload">导入成绩</el-button>
         <el-button type="info" @click="exportData" :icon="Download">导出模板</el-button>
-        <el-button 
-          type="danger" 
-          @click="batchDeleteGrades" 
-          :icon="Delete" 
-          :disabled="selectedRows.length === 0"
-        >
-          删除选中 ({{ selectedRows.length }})
-        </el-button>
-        <el-button 
-          v-if="selectedRows.length > 0"
-          @click="clearSelection"
-          :icon="Refresh"
-        >
-          清除选择
-        </el-button>
-        <!-- 调试按钮 -->
-        <el-button type="danger" @click="debugCourseInfo" :icon="Search" plain>
-          调试课程信息
-        </el-button>
+
       </div>
     </el-card>
 
@@ -75,9 +57,7 @@
         stripe
         style="width: 100%"
         max-height="500"
-        @selection-change="handleSelectionChange"
       >
-        <el-table-column type="selection" width="55" align="center" />
         <el-table-column type="index" label="序号" width="60" align="center" />
         <el-table-column prop="studentId" label="学号" width="120" align="center" />
         <el-table-column prop="name" label="姓名" width="120" align="center" />
@@ -312,7 +292,7 @@ import { useStudentStore } from '@/stores/student'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Search, Refresh, Check, EditPen, Upload, Download, Plus, Minus, User, Delete } from '@element-plus/icons-vue'
-import { debugGradeCreationIssue, validateCourseIdMapping, exportCourseInfo } from '@/utils/debugGradeIssue'
+
 
 const gradeStore = useGradeStore()
 const courseStore = useCourseStore()
@@ -328,9 +308,6 @@ const selectForm = reactive({
 const enrollmentForm = reactive({
   studentId: ''
 })
-
-// 选中的行数据
-const selectedRows = ref<any[]>([])
 
 // 表格引用
 const tableRef = ref<any>(null)
@@ -392,13 +369,6 @@ const loadStudents = async () => {
 
 // 课程选择变化
 const handleCourseChange = async () => {
-  console.log('课程选择变化，当前courseId:', selectForm.courseId)
-  console.log('所有课程选项:', courseStore.courses)
-  
-  // 查找当前选中的课程详情
-  const selectedCourse = courseStore.courses.find(c => c.id === selectForm.courseId)
-  console.log('选中的课程详情:', selectedCourse)
-  
   gradeStore.courseGrades = []
   if (selectForm.courseId) {
     await loadCourseGrades()
@@ -417,7 +387,10 @@ const enrollStudent = async () => {
   }
 
   try {
-    await courseStore.enrollStudentToCourse(selectForm.courseId, enrollmentForm.studentId)
+    // 使用课程的数据库ID
+    const courseId = selectForm.courseId
+    
+    await courseStore.enrollStudentToCourse(courseId, enrollmentForm.studentId)
     enrollmentForm.studentId = ''
     // 刷新成绩列表
     await loadCourseGrades()
@@ -444,7 +417,10 @@ const unenrollStudent = async () => {
       { type: 'warning' }
     )
 
-    await courseStore.unenrollStudentFromCourse(selectForm.courseId, enrollmentForm.studentId)
+    // 使用课程的数据库ID
+    const courseId = selectForm.courseId
+    
+    await courseStore.unenrollStudentFromCourse(courseId, enrollmentForm.studentId)
     enrollmentForm.studentId = ''
     // 刷新成绩列表
     await loadCourseGrades()
@@ -470,7 +446,10 @@ const refreshEnrollmentList = async () => {
 
   enrollmentDialog.value.loading = true
   try {
-    const students = await courseStore.fetchCourseStudents(selectForm.courseId, 1000)
+    // 使用课程的数据库ID
+    const courseId = selectForm.courseId
+    
+    const students = await courseStore.fetchCourseStudents(courseId, 1000)
     enrollmentDialog.value.students = students
   } catch (error) {
     // 错误已在store中处理
@@ -488,7 +467,10 @@ const removeStudentFromCourse = async (row: any) => {
       { type: 'warning' }
     )
 
-    await courseStore.unenrollStudentFromCourse(selectForm.courseId, row.studentId)
+    // 使用课程的数据库ID
+    const courseId = selectForm.courseId
+    
+    await courseStore.unenrollStudentFromCourse(courseId, row.studentId)
     // 从对话框列表中移除
     enrollmentDialog.value.students = enrollmentDialog.value.students.filter(
       s => s.studentId !== row.studentId
@@ -513,37 +495,29 @@ const loadCourseGrades = async () => {
     return
   }
   
-  console.log('=== 加载课程成绩调试 ===')
-  console.log('当前选择的课程ID (数据库ID):', selectForm.courseId)
-  console.log('所有可用课程:', courseStore.courses)
-  
   // 查找当前选中的课程详情
   const currentCourse = courseStore.courses.find(c => c.id === selectForm.courseId)
-  console.log('当前课程详情:', currentCourse)
-  
-  if (!currentCourse) {
-    console.error('找不到对应的课程！')
-    ElMessage.error('系统错误：找不到对应的课程信息')
-    return
-  }
-  
-  console.log('课程编号 (courseId):', currentCourse.courseId)
-  console.log('课程名称:', currentCourse.name)
   
   gradeStore.loading = true
   try {
-    // 先获取选课学生列表
-    const students = await courseStore.fetchCourseStudents(selectForm.courseId)
-    console.log('选课学生列表:', students)
+    // 查找当前课程，获取课程编号用于成绩查询
+    const currentCourse = courseStore.courses.find(c => c.id === selectForm.courseId)
+    if (!currentCourse) {
+      ElMessage.error('系统错误：找不到对应的课程信息')
+      return
+    }
     
-    // 再获取已录入的成绩（如果失败，返回空数组）
+    // 使用课程数据库ID获取选课学生
+    const courseId = selectForm.courseId
+    const students = await courseStore.fetchCourseStudents(courseId)
+    
+    // 使用课程编号获取成绩
+    const courseCode = currentCourse.courseId
     let grades = []
     try {
-      grades = await gradeStore.fetchCourseGrades(selectForm.courseId)
-      console.log('已录入成绩:', grades)
+      grades = await gradeStore.fetchCourseGrades(courseCode)
     } catch (gradeError) {
       // 如果获取成绩失败，可能是还没有成绩，继续处理
-      console.log('暂无成绩数据:', gradeError)
       grades = []
     }
     
@@ -560,16 +534,12 @@ const loadCourseGrades = async () => {
       }
     })
     
-    console.log('合并后的数据:', gradeStore.courseGrades)
-    console.log('==========================')
-    
     if (gradeStore.courseGrades.length === 0) {
       ElMessage.info('该课程暂无选课学生，请先添加选课学生')
     } else {
       ElMessage.success(`已加载 ${gradeStore.courseGrades.length} 名学生`)
     }
   } catch (error) {
-    console.error('加载失败:', error)
     ElMessage.error('加载学生列表失败，请检查课程是否正确')
   } finally {
     gradeStore.loading = false
@@ -608,46 +578,25 @@ const saveSingleGrade = async (row: any, index: number) => {
   
   if (!currentCourse) {
     ElMessage.error('系统错误：找不到对应的课程信息，请刷新页面重试')
-    console.error('课程查找失败:', {
-      selectedCourseId: selectForm.courseId,
-      availableCourses: courseStore.courses
-    })
     return
   }
   
   const courseCode = currentCourse.courseId
 
-  console.log('=== 保存单个成绩调试信息 ===')
-  console.log('当前选择的课程ID (数据库ID):', selectForm.courseId)
-  console.log('当前课程详情:', currentCourse)
-  console.log('将使用的课程编号 (courseId):', courseCode)
-  console.log('学生信息:', { studentId: row.studentId, name: row.name })
-  console.log('成绩:', row.score)
-  console.log('===========================')
-
   // 额外验证：确保课程编号格式正确
   if (!courseCode || courseCode.trim() === '') {
     ElMessage.error('课程编号无效，请联系管理员')
-    console.error('课程编号无效:', courseCode)
     return
   }
 
   try {
     if (row.gradeId) {
       // 更新已有成绩
-      console.log('更新已有成绩，gradeId:', row.gradeId)
       await gradeStore.updateGradeInfo(row.gradeId, {
         score: row.score
       })
     } else {
       // 录入新成绩 - 使用课程编号而不是数据库ID
-      console.log('创建新成绩，参数:', {
-        studentId: row.studentId,
-        courseId: courseCode,
-        score: row.score
-      })
-      
-      // 临时验证：确保courseId格式正确
       const finalCourseId = courseCode && courseCode.includes('_') ? courseCode : courseCode
       
       const grade = await gradeStore.addGrade({
@@ -656,40 +605,13 @@ const saveSingleGrade = async (row: any, index: number) => {
         score: row.score
       })
       
-      console.log('创建成功，返回的成绩对象:', grade)
-      
-      // 验证返回的成绩数据
-      if (grade && grade.courseId !== courseCode) {
-        console.warn('警告：返回的成绩课程ID与预期不符', {
-          expected: courseCode,
-          actual: grade.courseId
-        })
-      }
-      
       // 更新本地数据
       row.gradeId = grade.id
     }
     ElMessage.success(`学生 ${row.name} 成绩保存成功`)
   } catch (error) {
-    console.error('保存成绩失败:', error)
     // 错误已在store中处理
   }
-}
-
-// 处理表格选择变化
-const handleSelectionChange = (selection: any[]) => {
-  selectedRows.value = selection
-  console.log('选中的行:', selection)
-}
-
-// 清除选择
-const clearSelection = () => {
-  selectedRows.value = []
-  // 使用Element Plus的table实例清除选择
-  if (tableRef.value && tableRef.value.clearSelection) {
-    tableRef.value.clearSelection()
-  }
-  ElMessage.success('已清除所有选择')
 }
 
 // 删除单个成绩
@@ -706,7 +628,6 @@ const deleteSingleGrade = async (row: any, index: number) => {
       { type: 'warning' }
     )
 
-    console.log(`删除学生 ${row.name} (${row.studentId}) 的成绩，gradeId: ${row.gradeId}`)
     
     // 调用store的删除方法
     await gradeStore.removeGrade(row.gradeId)
@@ -717,80 +638,9 @@ const deleteSingleGrade = async (row: any, index: number) => {
       gradeStore.courseGrades.splice(currentIndex, 1)
     }
     
-    // 如果该行在选中列表中，也移除
-    const selectedIndex = selectedRows.value.findIndex(r => r.studentId === row.studentId)
-    if (selectedIndex !== -1) {
-      selectedRows.value.splice(selectedIndex, 1)
-    }
-    
     ElMessage.success(`成功删除学生 ${row.name} 的成绩`)
   } catch (cancel) {
     // 用户取消
-    console.log('用户取消删除操作')
-  }
-}
-
-// 批量删除成绩
-const batchDeleteGrades = async () => {
-  if (selectedRows.value.length === 0) {
-    ElMessage.warning('请先选择要删除的成绩')
-    return
-  }
-
-  // 过滤出有成绩记录的行（gradeId不为空）
-  const rowsWithGrades = selectedRows.value.filter(row => row.gradeId)
-  
-  if (rowsWithGrades.length === 0) {
-    ElMessage.warning('选中的学生都没有成绩记录，无需删除')
-    return
-  }
-
-  const studentNames = rowsWithGrades.map(row => row.name).join('、')
-  
-  try {
-    await ElMessageBox.confirm(
-      `确定要删除以下 ${rowsWithGrades.length} 名学生的成绩吗？<br/>学生：${studentNames}<br/><br/><strong>此操作不可恢复！</strong>`,
-      '批量删除成绩',
-      { 
-        type: 'warning',
-        dangerouslyUseHTMLString: true
-      }
-    )
-
-    console.log('开始批量删除，选中的学生:', rowsWithGrades)
-    
-    // 收集所有要删除的gradeId和studentId
-    const gradeIds = rowsWithGrades.map(row => row.gradeId)
-    const studentIds = rowsWithGrades.map(row => row.studentId)
-    
-    try {
-      // 使用store的批量删除方法
-      const result = await gradeStore.batchRemoveGrades(gradeIds)
-      
-      // 从本地数据中批量移除
-      gradeStore.courseGrades = gradeStore.courseGrades.filter(
-        g => !studentIds.includes(g.studentId)
-      )
-      
-      // 清空选中状态
-      selectedRows.value = []
-      
-      console.log('批量删除完成:', result)
-      
-      // 如果有失败的，显示详细信息
-      if (result.failed > 0) {
-        const failedNames = rowsWithGrades.slice(0, result.failed).map(r => r.name).join('、')
-        ElMessage.warning(`删除完成：成功 ${result.success} 条，失败 ${result.failed} 条<br/>失败学生：${failedNames}`, 5000)
-      } else {
-        ElMessage.success(`成功删除 ${result.success} 条成绩记录`)
-      }
-    } catch (error) {
-      console.error('批量删除失败:', error)
-      ElMessage.error('批量删除失败，请重试')
-    }
-  } catch (cancel) {
-    // 用户取消
-    console.log('用户取消批量删除操作')
   }
 }
 
@@ -816,27 +666,14 @@ const saveAllGrades = async () => {
   
   if (!currentCourse) {
     ElMessage.error('系统错误：找不到对应的课程信息，请刷新页面重试')
-    console.error('课程查找失败:', {
-      selectedCourseId: selectForm.courseId,
-      availableCourses: courseStore.courses
-    })
     return
   }
   
   const courseCode = currentCourse.courseId
 
-  console.log('=== 批量保存成绩调试信息 ===')
-  console.log('当前选择的课程ID (数据库ID):', selectForm.courseId)
-  console.log('当前课程详情:', currentCourse)
-  console.log('将使用的课程编号 (courseId):', courseCode)
-  console.log('需要保存的成绩数量:', validGrades.length)
-  console.log('学生列表:', validGrades.map(g => ({ studentId: g.studentId, name: g.name, score: g.score })))
-  console.log('===========================')
-
   // 额外验证：确保课程编号格式正确
   if (!courseCode || courseCode.trim() === '') {
     ElMessage.error('课程编号无效，请联系管理员')
-    console.error('课程编号无效:', courseCode)
     return
   }
 
@@ -852,46 +689,24 @@ const saveAllGrades = async () => {
 
     for (const row of validGrades) {
       try {
-        console.log(`处理学生 ${row.name} (${row.studentId}) - 成绩: ${row.score}`)
-        
         if (row.gradeId) {
-          console.log('更新已有成绩，gradeId:', row.gradeId)
           await gradeStore.updateGradeInfo(row.gradeId, {
             score: row.score
           })
         } else {
-          console.log('创建新成绩，参数:', {
-            studentId: row.studentId,
-            courseId: courseCode,
-            score: row.score
-          })
-          
           const grade = await gradeStore.addGrade({
             studentId: row.studentId,
             courseId: courseCode,
             score: row.score
           })
           
-          console.log('创建成功，返回的成绩对象:', grade)
-          
-          // 验证返回的成绩数据
-          if (grade && grade.courseId !== courseCode) {
-            console.warn('警告：返回的成绩课程ID与预期不符', {
-              expected: courseCode,
-              actual: grade.courseId
-            })
-          }
-          
           row.gradeId = grade.id
         }
         successCount++
       } catch (error) {
-        console.error(`保存学生 ${row.name} 成绩失败:`, error)
         failCount++
       }
     }
-
-    console.log('批量保存完成，成功:', successCount, '失败:', failCount)
 
     if (failCount > 0) {
       ElMessage.warning(`保存完成：成功 ${successCount} 条，失败 ${failCount} 条`)
@@ -1020,9 +835,18 @@ const exportData = async () => {
     return
   }
 
+  // 查找当前课程，获取课程编号
+  const currentCourse = courseStore.courses.find(c => c.id === selectForm.courseId)
+  if (!currentCourse) {
+    ElMessage.error('系统错误：找不到对应的课程信息')
+    return
+  }
+  
+  const courseCode = currentCourse.courseId
+
   try {
     await gradeStore.exportGradesData({
-      courseId: selectForm.courseId
+      courseId: courseCode
     })
   } catch (error) {
     // 错误已在store中处理
@@ -1041,34 +865,7 @@ onActivated(() => {
   resetSelect()
 })
 
-// 调试函数：检查课程信息
-const debugCourseInfo = async () => {
-  console.log('=== 手动触发课程信息调试 ===')
-  
-  // 确保课程数据已加载
-  if (courseStore.courses.length === 0) {
-    await loadCourses()
-  }
-  
-  // 执行调试
-  await debugGradeCreationIssue()
-  
-  // 验证当前选择
-  if (selectForm.courseId) {
-    const isValid = validateCourseIdMapping(selectForm.courseId)
-    if (!isValid) {
-      ElMessage.error('课程ID映射验证失败！请查看控制台获取详细信息')
-    } else {
-      ElMessage.success('课程ID映射验证通过！请查看控制台获取详细信息')
-    }
-  } else {
-    ElMessage.warning('请先选择课程')
-  }
-  
-  // 导出课程信息
-  const info = exportCourseInfo()
-  console.log('已导出课程信息到文件，同时在控制台显示')
-}
+
 </script>
 
 <style scoped>

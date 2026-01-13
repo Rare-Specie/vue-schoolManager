@@ -249,6 +249,11 @@ const loadCourseDetail = async () => {
 // 加载选课学生
 const loadCourseStudents = async () => {
   try {
+    // 获取当前课程详情，使用课程数据库ID
+    if (!courseStore.currentCourse) {
+      return
+    }
+    const courseId = courseStore.currentCourse.id
     await courseStore.fetchCourseStudents(courseId, 1000)
   } catch (error) {
     // 学生数据可能不存在，不显示错误

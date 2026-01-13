@@ -410,10 +410,18 @@ onUnmounted(() => {
 }
 
 .quick-actions {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  display: flex;
   gap: 12px;
   padding: 16px 0;
+  justify-content: center;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.quick-actions .action-button {
+  flex: 0 1 140px;
+  min-width: 120px;
+  max-width: 160px;
 }
 
 .action-button {
@@ -445,9 +453,6 @@ onUnmounted(() => {
   flex-direction: column;
 }
 .profile-info {
-  flex: 1;
-}
-.quick-actions {
   flex: 1;
 }
 

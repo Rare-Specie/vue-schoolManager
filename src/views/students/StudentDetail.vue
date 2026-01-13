@@ -368,6 +368,7 @@ const enrollStudentForCurrentStudent = async () => {
     ElMessage.warning('当前学生无学号，无法选课')
     return
   }
+  
   try {
     await courseStore.enrollStudentToCourse(cid, sid)
     enrollmentForm.value.courseId = ''
@@ -388,7 +389,15 @@ const unenrollStudentFromCourseConfirm = async (courseId: string) => {
     )
     const sid = studentStore.currentStudent?.studentId
     if (!sid) return
-    await courseStore.unenrollStudentFromCourse(courseId, sid)
+    
+    // 查找课程，获取数据库ID
+    const course = courseStore.courses.find(c => c.courseId === courseId)
+    if (!course) {
+      ElMessage.error('找不到对应的课程信息')
+      return
+    }
+    
+    await courseStore.unenrollStudentFromCourse(course.id, sid)
     ElMessage.success('取消选课成功')
     await loadStudentEnrollments(sid)
   } catch (cancel) {

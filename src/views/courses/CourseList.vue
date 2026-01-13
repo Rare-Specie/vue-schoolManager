@@ -239,7 +239,7 @@ const viewDetail = (row: any) => {
 // 删除课程
 const deleteCourse = async (row: any) => {
   try {
-    await ElMessageBox.confirm(`确定要删除课程 ${row.name} 吗？`, '警告', {
+    await ElMessageBox.confirm(`确定要删除课程 ${row.name} 吗？（学生的成绩不会删除）`, '警告', {
       type: 'warning'
     })
     await courseStore.removeCourse(row.id)

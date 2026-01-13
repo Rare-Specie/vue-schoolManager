@@ -116,10 +116,14 @@ export const useCourseStore = defineStore('course', () => {
 
   // 学生选课
   const enrollStudentToCourse = async (courseId: string, studentId: string) => {
+    console.log('=== store enrollStudentToCourse 调用 ===')
+    console.log('courseId:', courseId, '类型:', typeof courseId)
+    console.log('studentId:', studentId)
+    console.log('currentCourse:', currentCourse.value)
     try {
       await enrollStudent(courseId, studentId)
       ElMessage.success('选课成功')
-      // 刷新选课学生列表
+      // 刷新选课学生列表 - courseId 是课程数据库ID，需要匹配 currentCourse.id
       if (currentCourse.value && currentCourse.value.id === courseId) {
         await fetchCourseStudents(courseId)
       }
@@ -135,7 +139,7 @@ export const useCourseStore = defineStore('course', () => {
     try {
       await unenrollStudent(courseId, studentId)
       ElMessage.success('取消选课成功')
-      // 刷新选课学生列表
+      // 刷新选课学生列表 - courseId 是课程数据库ID，需要匹配 currentCourse.id
       if (currentCourse.value && currentCourse.value.id === courseId) {
         await fetchCourseStudents(courseId)
       }
