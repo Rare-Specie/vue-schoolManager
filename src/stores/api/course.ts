@@ -93,7 +93,7 @@ export const exportCoursesAsFormat = (params: { search?: string; format?: 'json'
   return request.get('/courses/export', {
     params,
     responseType: 'blob'
-  }).catch(() => {
+  }).then((res: any) => res as Blob).catch(() => {
     // 如果导出接口不存在，使用课程列表接口并转换为指定格式
     return request.get('/courses', { params }).then((res: any) => {
       const data = res.data || res

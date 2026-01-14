@@ -110,7 +110,7 @@ export const exportStudentsAsFormat = (params: { class?: string; search?: string
       const headers = ['学号', '姓名', '班级', '性别', '电话', '邮箱']
       const csvContent = [
         headers.join(','),
-        ...data.map(student => [
+        ...data.map((student: any) => [
           student.studentId,
           `"${student.name.replace(/"/g, '""')}"`,
           student.class,

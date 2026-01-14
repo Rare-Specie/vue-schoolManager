@@ -7,8 +7,8 @@ import {
   updateStudent,
   deleteStudent,
   importStudents,
-  exportStudents,
-  exportStudentsAsFormat,
+  exportStudents as exportStudentsApi,
+  exportStudentsAsFormat as exportStudentsAsFormatApi,
   getStudentGradesOverview,
   type Student,
   type StudentListParams,
@@ -135,7 +135,7 @@ export const useStudentStore = defineStore('student', () => {
   // 导出学生数据
   const exportStudentsData = async () => {
     try {
-      const blob = await exportStudents()
+      const blob = await exportStudentsApi()
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -152,7 +152,7 @@ export const useStudentStore = defineStore('student', () => {
   // 导出学生数据为指定格式
   const exportStudentsAsFormat = async (params: { class?: string; search?: string; format?: 'json' | 'csv' | 'excel' } = {}) => {
     try {
-      const blob = await exportStudentsAsFormat(params)
+      const blob = await exportStudentsAsFormatApi(params)
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -219,6 +219,7 @@ export const useStudentStore = defineStore('student', () => {
     removeStudent,
     importStudentsData,
     exportStudentsData,
+    exportStudentsAsFormat,
     fetchStudentGradesOverview,
     clearCurrentStudent
   }

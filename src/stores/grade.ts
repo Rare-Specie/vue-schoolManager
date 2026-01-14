@@ -6,12 +6,12 @@ import {
   updateGrade,
   deleteGrade,
   importGrades,
-  exportGrades,
+  exportGrades as exportGradesApi,
   getCourseGrades,
   batchUpdateGrades,
   getStudentGrades,
-  exportGradesWithHeaders,
-  exportGradesAsFormat,
+  exportGradesWithHeaders as exportGradesWithHeadersApi,
+  exportGradesAsFormat as exportGradesAsFormatApi,
   type Grade,
   type GradeListParams,
   type GradeFormData,
@@ -171,7 +171,7 @@ export const useGradeStore = defineStore('grade', () => {
         headers['X-Query-StudentId'] = authStore.user.studentId
       }
       
-      const blob = await exportGradesWithHeaders(params, headers)
+      const blob = await exportGradesWithHeadersApi(params, headers)
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -197,7 +197,7 @@ export const useGradeStore = defineStore('grade', () => {
         headers['X-Query-StudentId'] = authStore.user.studentId
       }
       
-      const blob = await exportGradesAsFormat(params, format, headers)
+      const blob = await exportGradesAsFormatApi(params, format, headers)
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -302,6 +302,7 @@ export const useGradeStore = defineStore('grade', () => {
     removeGrade,
     importGradesData,
     exportGradesData,
+    exportGradesAsFormat,
     fetchCourseGrades,
     fetchStudentGrades,
     batchUpdate,

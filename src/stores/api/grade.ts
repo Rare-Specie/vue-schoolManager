@@ -151,7 +151,7 @@ export const exportGradesAsFormat = (params: GradeListParams = {}, format: 'json
       const headers = ['学号', '姓名', '课程', '成绩', '录入时间']
       const csvContent = [
         headers.join(','),
-        ...data.map(grade => [
+        ...data.map((grade: any) => [
           grade.studentId,
           `"${grade.studentName.replace(/"/g, '""')}"`,
           `"${grade.courseName.replace(/"/g, '""')}"`,
