@@ -28,7 +28,6 @@
       <div class="action-buttons">
         <el-button type="success" @click="showAddDialog" :icon="Plus">添加学生</el-button>
         <el-button type="warning" @click="showImportDialog" :icon="Upload">批量导入</el-button>
-        <el-button type="info" @click="exportData" :icon="Download">导出数据</el-button>
       </div>
     </el-card>
 
