@@ -51,15 +51,7 @@
               <span>统计分析</span>
             </template>
             <el-menu-item index="/main/statistics/overview">统计概览</el-menu-item>
-            <el-menu-item index="/main/statistics/detail">详细统计</el-menu-item>
-          </el-sub-menu>
-          <el-sub-menu index="reports">
-            <template #title>
-              <el-icon><Document /></el-icon>
-              <span>报表管理</span>
-            </template>
-            <el-menu-item index="/main/reports/report-card">成绩单</el-menu-item>
-            <el-menu-item index="/main/reports/statistics">统计报表</el-menu-item>
+            <el-menu-item index="/main/statistics/export">数据导出 (待开发)</el-menu-item>
           </el-sub-menu>
         </template>
 
@@ -95,16 +87,7 @@
               <span>统计分析</span>
             </template>
             <el-menu-item index="/main/statistics/overview">统计概览</el-menu-item>
-            <el-menu-item index="/main/statistics/detail">详细统计</el-menu-item>
-          </el-sub-menu>
-
-          <el-sub-menu index="reports">
-            <template #title>
-              <el-icon><Document /></el-icon>
-              <span>报表管理</span>
-            </template>
-            <el-menu-item index="/main/reports/report-card">成绩单</el-menu-item>
-            <el-menu-item index="/main/reports/statistics">统计报表</el-menu-item>
+            <el-menu-item index="/main/statistics/export">数据导出 (待开发)</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="admin">
@@ -251,7 +234,7 @@ import { getOperationLogs } from '@/stores/api/auth'
 import { tokenManager } from '@/utils/tokenManager'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
-import { User, Refresh, Warning, ArrowDown } from '@element-plus/icons-vue'
+import { User, Refresh, Warning, ArrowDown, Download } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const router = useRouter()

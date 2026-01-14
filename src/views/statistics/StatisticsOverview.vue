@@ -401,8 +401,6 @@ const loadRanking = async () => {
 // 查看班级详情
 const viewClassDetail = (row: any) => {
   ElMessage.info(`班级 ${row.class} 详情功能待实现`)
-  // 可以跳转到详细统计页面
-  // router.push(`/main/statistics/detail?class=${row.class}`)
 }
 
 // 导出班级报表

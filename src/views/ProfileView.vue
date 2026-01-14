@@ -204,7 +204,7 @@ const quickActions = computed(() => {
     actions.push(
       { label: '成绩录入', path: '/main/grades/input', icon: 'EditPen', type: 'primary' },
       { label: '成绩查询', path: '/main/grades/query', icon: 'Search', type: 'success' },
-      { label: '统计分析', path: '/main/statistics/overview', icon: 'DataAnalysis', type: 'warning' }
+      { label: '统计概览', path: '/main/statistics/overview', icon: 'DataAnalysis', type: 'warning' }
     )
   } else if (authStore.isAdmin) {
     actions.push(

@@ -79,23 +79,10 @@ const router = createRouter({
           meta: { title: '统计概览' }
         },
         {
-          path: 'statistics/detail',
-          name: 'statistics-detail',
-          component: () => import('@/views/statistics/DetailedStatistics.vue'),
-          meta: { title: '详细统计' }
-        },
-        // 报表与打印
-        {
-          path: 'reports/report-card',
-          name: 'report-card',
-          component: () => import('@/views/reports/ReportCard.vue'),
-          meta: { title: '成绩单' }
-        },
-        {
-          path: 'reports/statistics',
-          name: 'statistical-reports',
-          component: () => import('@/views/reports/StatisticalReports.vue'),
-          meta: { title: '统计报表' }
+          path: 'statistics/export',
+          name: 'statistics-export',
+          component: () => import('@/views/statistics/DataExport.vue'),
+          meta: { title: '数据导出' }
         },
         // 用户管理（管理员）
         {
