@@ -92,22 +92,12 @@
       </div>
     </el-card>
 
-    <!-- 系统日志 -->
+    <!-- 操作日志 -->
     <el-card class="section-card" style="margin-top: 20px;">
       <template #header>
         <div class="card-header">
-          <span>系统日志</span>
+          <span>操作日志</span>
           <div class="header-actions">
-            <el-select
-              v-model="logParams.level"
-              placeholder="日志级别"
-              style="width: 120px"
-              clearable
-            >
-              <el-option label="信息" value="info" />
-              <el-option label="警告" value="warning" />
-              <el-option label="错误" value="error" />
-            </el-select>
             <el-date-picker
               v-model="logParams.timeRange"
               type="daterange"
@@ -124,37 +114,31 @@
       </template>
 
       <el-table
-        :data="systemStore.logs"
-        v-loading="systemStore.loading"
+        :data="operationLogs"
+        v-loading="logsLoading"
         border
         stripe
         style="width: 100%"
         max-height="400"
       >
         <el-table-column type="index" label="序号" width="60" align="center" />
-        <el-table-column prop="level" label="级别" width="100" align="center">
-          <template #default="{ row }">
-            <el-tag :type="getLevelTagType(row.level)">
-              {{ getLevelText(row.level) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="module" label="模块" width="120" align="center" />
-        <el-table-column prop="message" label="日志内容" min-width="250" />
-        <el-table-column prop="ip" label="IP地址" width="120" align="center" />
         <el-table-column prop="createdAt" label="时间" width="160" align="center">
           <template #default="{ row }">
             {{ formatDate(row.createdAt) }}
           </template>
         </el-table-column>
+        <el-table-column prop="username" label="用户" width="120" align="center" />
+        <el-table-column prop="module" label="模块" width="120" align="center" />
+        <el-table-column prop="action" label="操作" min-width="200" />
+        <el-table-column prop="ip" label="IP地址" width="120" align="center" />
       </el-table>
 
       <!-- 分页 -->
-      <div class="pagination-container" v-if="systemStore.total > 0">
+      <div class="pagination-container" v-if="operationLogTotal > 0">
         <el-pagination
           v-model:current-page="logParams.page"
           v-model:page-size="logParams.limit"
-          :total="systemStore.total"
+          :total="operationLogTotal"
           :page-sizes="[10, 20, 50, 100]"
           layout="total, sizes, prev, pager, next, jumper"
           @size-change="handleLogSizeChange"
@@ -162,8 +146,8 @@
         />
       </div>
 
-      <div v-if="systemStore.logs.length === 0 && !systemStore.loading" class="empty-state">
-        <el-empty description="暂无日志数据" />
+      <div v-if="operationLogs.length === 0 && !logsLoading" class="empty-state">
+        <el-empty description="暂无操作日志数据" />
       </div>
     </el-card>
 
@@ -228,17 +212,22 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { useSystemStore } from '@/stores/system'
+import { getOperationLogs } from '@/stores/api/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
 import { Refresh, Delete, RefreshLeft, Search, Download } from '@element-plus/icons-vue'
 
 const systemStore = useSystemStore()
 
+// 操作日志数据
+const operationLogs = ref<any[]>([])
+const operationLogTotal = ref(0)
+const logsLoading = ref(false)
+
 // 日志查询参数
 const logParams = reactive({
   page: 1,
   limit: 10,
-  level: '',
   timeRange: [] as string[]
 })
 
@@ -313,35 +302,69 @@ const deleteBackup = async (row: any) => {
   }
 }
 
-// 加载日志
+// 加载操作日志
 const loadLogs = async () => {
-  const params: any = {
-    page: logParams.page,
-    limit: logParams.limit
-  }
+  logsLoading.value = true
+  try {
+    const params: any = {
+      page: logParams.page,
+      limit: logParams.limit
+    }
 
-  if (logParams.level) params.level = logParams.level
-  if (logParams.timeRange && logParams.timeRange.length === 2) {
-    params.startTime = logParams.timeRange[0]
-    params.endTime = logParams.timeRange[1]
-  }
+    if (logParams.timeRange && logParams.timeRange.length === 2) {
+      params.startTime = logParams.timeRange[0]
+      params.endTime = logParams.timeRange[1]
+    }
 
-  await systemStore.fetchSystemLogs(params)
+    const response = await getOperationLogs(params)
+    operationLogs.value = response.data
+    operationLogTotal.value = response.total
+  } catch (error) {
+    ElMessage.error('加载操作日志失败')
+  } finally {
+    logsLoading.value = false
+  }
 }
 
-// 导出日志
+// 导出操作日志
 const exportLogs = async () => {
   const params: any = {}
-  if (logParams.level) params.level = logParams.level
   if (logParams.timeRange && logParams.timeRange.length === 2) {
     params.startTime = logParams.timeRange[0]
     params.endTime = logParams.timeRange[1]
   }
 
   try {
-    await systemStore.exportSystemLogs(params)
+    logsLoading.value = true
+    const response = await getOperationLogs(params)
+    
+    // 生成CSV内容
+    const headers = ['时间', '用户', '模块', '操作', 'IP地址']
+    const csvContent = [
+      headers.join(','),
+      ...response.data.map(log => [
+        formatDate(log.createdAt),
+        log.username,
+        log.module,
+        `"${log.action}"`, // 操作可能包含逗号，用引号包裹
+        log.ip || ''
+      ].join(','))
+    ].join('\n')
+
+    // 创建并下载文件
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = window.URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `操作日志_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    window.URL.revokeObjectURL(url)
+    
+    ElMessage.success('操作日志导出成功')
   } catch (error) {
-    // 错误已在store中处理
+    ElMessage.error('操作日志导出失败')
+  } finally {
+    logsLoading.value = false
   }
 }
 
@@ -425,26 +448,6 @@ const formatDate = (dateStr?: string) => {
     hour: '2-digit',
     minute: '2-digit'
   })
-}
-
-// 获取日志级别文本
-const getLevelText = (level: string) => {
-  const levelMap: Record<string, string> = {
-    info: '信息',
-    warning: '警告',
-    error: '错误'
-  }
-  return levelMap[level] || level
-}
-
-// 获取日志级别标签类型
-const getLevelTagType = (level: string) => {
-  const typeMap: Record<string, string> = {
-    info: 'info',
-    warning: 'warning',
-    error: 'danger'
-  }
-  return typeMap[level] || 'info'
 }
 
 onMounted(() => {

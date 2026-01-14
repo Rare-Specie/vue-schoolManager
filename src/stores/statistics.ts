@@ -18,6 +18,7 @@ import {
   type DistributionParams,
   type ReportParams
 } from './api/statistics'
+import { getGrades, type Grade, type GradeListParams } from './api/grade'
 import { ElMessage } from 'element-plus'
 
 export const useStatisticsStore = defineStore('statistics', () => {
@@ -26,6 +27,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
   const courseStats = ref<CourseStats | null>(null)
   const ranking = ref<RankingItem[]>([])
   const distribution = ref<DistributionItem[]>([])
+  const classDetail = ref<Grade[]>([])
   const loading = ref(false)
 
   // 获取统计概览
@@ -125,6 +127,25 @@ export const useStatisticsStore = defineStore('statistics', () => {
     }
   }
 
+  // 获取班级成绩详情
+  const fetchClassDetail = async (className: string) => {
+    loading.value = true
+    try {
+      const response = await getGrades({ 
+        class: className,
+        page: 1,
+        limit: 1000  // 获取足够多的数据，确保覆盖该班级所有成绩
+      })
+      classDetail.value = response.data
+      return response.data
+    } catch (error) {
+      ElMessage.error('获取班级详情失败')
+      throw error
+    } finally {
+      loading.value = false
+    }
+  }
+
   // 清空数据
   const clearData = () => {
     overview.value = null
@@ -132,6 +153,7 @@ export const useStatisticsStore = defineStore('statistics', () => {
     courseStats.value = null
     ranking.value = []
     distribution.value = []
+    classDetail.value = []
   }
 
   return {
@@ -140,12 +162,14 @@ export const useStatisticsStore = defineStore('statistics', () => {
     courseStats,
     ranking,
     distribution,
+    classDetail,
     loading,
     fetchOverviewStats,
     fetchClassStats,
     fetchCourseStats,
     fetchRanking,
     fetchDistribution,
+    fetchClassDetail,
     generateStatReport,
     clearData
   }

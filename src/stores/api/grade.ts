@@ -7,6 +7,7 @@ export interface Grade {
   courseId: string
   courseName: string
   score: number
+  class?: string
   createdAt?: string
   updatedAt?: string
 }

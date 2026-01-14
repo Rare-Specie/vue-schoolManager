@@ -65,6 +65,7 @@
         </el-button>
         <el-button type="info" @click="exportData" :icon="Download">导出JSON</el-button>
         <el-button type="warning" @click="printResults" :icon="Printer">打印</el-button>
+        <span class="hint-text">如果班级未能正常显示，请点击重置</span>
       </div>
     </el-card>
 
@@ -272,7 +273,49 @@ const loadGrades = async () => {
     params.endTime = searchForm.timeRange[1]
   }
 
-  await gradeStore.fetchGrades(params)
+  // 获取成绩数据
+  const gradesResponse = await gradeStore.fetchGrades(params)
+  
+  // 获取成绩数据后，为每条记录获取学生的班级信息
+  if (gradesResponse.data && gradesResponse.data.length > 0) {
+    // 提取所有唯一的学号
+    const studentIds = [...new Set(gradesResponse.data.map(g => g.studentId))]
+    
+    // 批量获取学生信息
+    try {
+      // 创建学号到班级的映射
+      const studentClassMap = new Map()
+      
+      // 使用学生store获取所有学生，然后过滤出需要的学号
+      const studentsResponse = await studentStore.fetchStudents({
+        page: 1,
+        limit: 1000
+      })
+      
+      // 创建学号到班级的映射
+      studentsResponse.data.forEach(student => {
+        if (studentIds.includes(student.studentId)) {
+          studentClassMap.set(student.studentId, student.class)
+        }
+      })
+      
+      // 为成绩数据添加班级信息
+      gradeStore.grades = gradesResponse.data.map(grade => ({
+        ...grade,
+        class: studentClassMap.get(grade.studentId) || '-'
+      }))
+    } catch (error) {
+      console.warn('获取学生班级信息失败，将显示默认值:', error)
+      // 如果获取学生信息失败，保持原始数据，班级显示为'-'
+      gradeStore.grades = gradesResponse.data.map(grade => ({
+        ...grade,
+        class: '-'
+      }))
+    }
+  } else {
+    // 如果没有成绩数据，清空显示
+    gradeStore.grades = []
+  }
 }
 
 // 分页处理
@@ -572,6 +615,14 @@ onMounted(() => {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+  align-items: center;
+}
+
+.hint-text {
+  font-size: 12px;
+  color: #909399;
+  margin-left: 8px;
+  font-style: italic;
 }
 
 .table-card {

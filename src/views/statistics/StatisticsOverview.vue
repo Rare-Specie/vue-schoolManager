@@ -99,7 +99,6 @@
               @clear="loadClassStats"
             />
             <el-button type="primary" @click="loadClassStats" :icon="Search">查询</el-button>
-            <el-button type="success" @click="exportClassReport" :icon="Download">导出报表</el-button>
           </div>
         </div>
       </template>
@@ -146,72 +145,62 @@
             <span v-else>-</span>
           </template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right" align="center">
-          <template #default="{ row }">
-            <el-button size="small" @click="viewClassDetail(row)" :icon="View">详情</el-button>
-          </template>
-        </el-table-column>
+
       </el-table>
     </el-card>
 
-    <!-- 排名榜 -->
-    <el-card class="table-card" style="margin-top: 20px;">
-      <template #header>
-        <div class="card-header">
-          <span>成绩排名榜</span>
-          <div class="header-actions">
-            <el-select
-              v-model="rankingLimit"
-              placeholder="显示数量"
-              style="width: 120px"
-              @change="loadRanking"
-            >
-              <el-option :value="10" label="前10名" />
-              <el-option :value="20" label="前20名" />
-              <el-option :value="50" label="前50名" />
-            </el-select>
-            <el-button type="primary" @click="loadRanking" :icon="Refresh">刷新</el-button>
-          </div>
+    <!-- 班级成绩详情弹窗 -->
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogTitle"
+      width="80%"
+      destroy-on-close
+      @close="handleDialogClose"
+    >
+      <div v-loading="classDetailLoading">
+        <el-table
+          v-if="classDetailData.length > 0"
+          :data="classDetailData"
+          border
+          stripe
+          style="width: 100%"
+          height="400"
+        >
+          <el-table-column type="index" label="序号" width="60" align="center" />
+          <el-table-column prop="studentId" label="学号" width="120" align="center" />
+          <el-table-column prop="studentName" label="姓名" width="120" align="center" />
+          <el-table-column prop="class" label="班级" width="120" align="center">
+            <template #default="{ row }">
+              {{ row.class || '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="courseName" label="课程" min-width="150" />
+          <el-table-column prop="score" label="成绩" width="100" align="center">
+            <template #default="{ row }">
+              <el-tag :type="getScoreTagType(row.score)" effect="dark">
+                {{ row.score }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="createdAt" label="录入时间" width="160" align="center">
+            <template #default="{ row }">
+              {{ formatDate(row.createdAt) }}
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div v-else-if="!classDetailLoading" style="text-align: center; padding: 40px; color: #909399;">
+          暂无数据
         </div>
-      </template>
+      </div>
 
-      <el-table
-        :data="statisticsStore.ranking"
-        v-loading="statisticsStore.loading"
-        border
-        stripe
-        style="width: 100%"
-      >
-        <el-table-column label="排名" width="100" align="center">
-          <template #default="{ $index }">
-            <el-tag
-              :type="$index < 3 ? 'danger' : 'info'"
-              effect="dark"
-              size="large"
-            >
-              <el-icon v-if="$index === 0"><StarFilled /></el-icon>
-              <el-icon v-else-if="$index === 1"><Medal /></el-icon>
-              <el-icon v-else-if="$index === 2"><Trophy /></el-icon>
-              {{ $index + 1 }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="studentId" label="学号" width="120" align="center" />
-        <el-table-column prop="name" label="姓名" width="120" align="center" />
-        <el-table-column prop="class" label="班级" width="120" align="center" />
-        <el-table-column prop="totalScore" label="总分" width="100" align="center">
-          <template #default="{ row }">
-            <strong style="color: #409EFF;">{{ row.totalScore }}</strong>
-          </template>
-        </el-table-column>
-        <el-table-column prop="avgScore" label="平均分" width="100" align="center">
-          <template #default="{ row }">
-            {{ row.avgScore.toFixed(1) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="courseCount" label="课程数" width="100" align="center" />
-      </el-table>
-    </el-card>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">关闭</el-button>
+        </span>
+      </template>
+    </el-dialog>
+
   </div>
 </template>
 
@@ -221,7 +210,7 @@ import { useRouter } from 'vue-router'
 import { useStatisticsStore } from '@/stores/statistics'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
-import { Search, Download, Refresh, View, StarFilled, Medal, Trophy } from '@element-plus/icons-vue'
+import { Search, Refresh } from '@element-plus/icons-vue'
 import { Notebook, UserFilled, Document, TrendCharts } from '@element-plus/icons-vue'
 
 const router = useRouter()
@@ -238,8 +227,12 @@ let distributionChart: echarts.ECharts | null = null
 // 班级搜索
 const classSearch = ref('')
 
-// 排名数量
-const rankingLimit = ref(10)
+// 弹窗状态
+const dialogVisible = ref(false)
+const dialogTitle = ref('')
+const classDetailData = ref<any[]>([])
+const classDetailLoading = ref(false)
+const currentClass = ref('')
 
 // 过滤后的班级统计
 const filteredClassStats = computed(() => {
@@ -274,7 +267,9 @@ const loadPassRateChart = async () => {
   const option = {
     tooltip: {
       trigger: 'item',
-      formatter: '{b}: {c}% ({d}%)'
+      formatter: (params: any) => {
+        return `${params.name}: ${params.value.toFixed(2)}% (${params.percent.toFixed(2)}%)`
+      }
     },
     legend: {
       orient: 'vertical',
@@ -293,7 +288,9 @@ const loadPassRateChart = async () => {
         },
         label: {
           show: true,
-          formatter: '{b}: {c}%'
+          formatter: (params: any) => {
+            return `${params.name}: ${params.value.toFixed(2)}%`
+          }
         },
         emphasis: {
           label: {
@@ -389,31 +386,17 @@ const loadClassStats = async () => {
   }
 }
 
-// 加载排名
-const loadRanking = async () => {
-  try {
-    await statisticsStore.fetchRanking({ limit: rankingLimit.value })
-  } catch (error) {
-    // 错误已在store中处理
-  }
+
+
+
+
+// 处理弹窗关闭
+const handleDialogClose = () => {
+  classDetailData.value = []
+  currentClass.value = ''
 }
 
-// 查看班级详情
-const viewClassDetail = (row: any) => {
-  ElMessage.info(`班级 ${row.class} 详情功能待实现`)
-}
 
-// 导出班级报表
-const exportClassReport = async () => {
-  try {
-    await statisticsStore.generateStatReport({
-      type: 'class',
-      format: 'excel'
-    })
-  } catch (error) {
-    // 错误已在store中处理
-  }
-}
 
 // 根据分数获取标签类型
 const getScoreTagType = (score: number) => {
@@ -431,6 +414,19 @@ const getProgressColor = (percentage: number) => {
   return '#F56C6C'
 }
 
+// 格式化日期
+const formatDate = (dateString?: string) => {
+  if (!dateString) return '-'
+  const date = new Date(dateString)
+  return date.toLocaleString('zh-CN', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
 // 监听窗口大小变化，重绘图表
 watch(() => [passRateChartRef.value, distributionChartRef.value], () => {
   if (passRateChart) passRateChart.resize()
@@ -446,7 +442,6 @@ const handleResize = () => {
 onMounted(async () => {
   await loadOverview()
   await loadClassStats()
-  await loadRanking()
   await loadDistribution()
 
   // 监听窗口大小变化
@@ -482,6 +477,7 @@ onUnmounted(() => {
   height: 100px;
   cursor: pointer;
   transition: transform 0.3s;
+  overflow: hidden !important;
 }
 
 .stat-card:hover {
@@ -492,6 +488,9 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 16px;
+  height: 100%;
+  width: 100%;
+  overflow: hidden !important;
 }
 
 .icon-wrapper {
@@ -503,6 +502,7 @@ onUnmounted(() => {
   justify-content: center;
   color: white;
   font-size: 24px;
+  flex-shrink: 0;
 }
 
 .bg-blue { background: linear-gradient(135deg, #409EFF, #337ECC); }
@@ -512,18 +512,28 @@ onUnmounted(() => {
 
 .info {
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .label {
   font-size: 12px;
   color: #909399;
   margin-bottom: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .value {
   font-size: 24px;
   font-weight: 700;
   color: #303133;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .chart-card {
@@ -557,36 +567,79 @@ onUnmounted(() => {
   text-align: center;
 }
 
+/* 弹窗样式优化 */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* 确保弹窗内的表格滚动条正常工作 */
+.el-dialog__body {
+  padding: 20px;
+}
+
+.el-table {
+  border-radius: 4px;
+}
+
+.el-table .el-tag {
+  font-weight: bold;
+}
+
 /* 现代化滚动条样式 - Vue3风格 */
 /* Webkit 浏览器 (Chrome, Safari, Edge) */
-::-webkit-scrollbar {
+.statistics-overview-container ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
-::-webkit-scrollbar-track {
+.statistics-overview-container ::-webkit-scrollbar-track {
   background: transparent;
   border-radius: 4px;
 }
 
-::-webkit-scrollbar-thumb {
+.statistics-overview-container ::-webkit-scrollbar-thumb {
   background: rgba(156, 163, 175, 0.5);
   border-radius: 4px;
   transition: background 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
 
-::-webkit-scrollbar-thumb:hover {
+.statistics-overview-container ::-webkit-scrollbar-thumb:hover {
   background: rgba(107, 114, 128, 0.7);
 }
 
-::-webkit-scrollbar-thumb:active {
+.statistics-overview-container ::-webkit-scrollbar-thumb:active {
   background: rgba(75, 85, 99, 0.8);
 }
 
 /* Firefox */
-* {
+.statistics-overview-container {
   scrollbar-width: thin;
   scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
+}
+
+/* 强制隐藏卡片内的滚动条 */
+.stat-card .el-card__body {
+  padding: 0 !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* 确保el-card本身没有滚动条 */
+.stat-card {
+  overflow: hidden !important;
+}
+
+.stat-card .el-card__body::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.stat-card .el-card__body {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
 }
 </style>

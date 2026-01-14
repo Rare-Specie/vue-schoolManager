@@ -129,7 +129,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, onActivated, computed } from 'vue'
 import { useGradeStore } from '@/stores/grade'
 import { useCourseStore } from '@/stores/course'
 import { useAuthStore } from '@/stores/auth'
@@ -172,6 +172,8 @@ const handleCourseChange = (courseId: string) => {
   if (courseId) {
     const course = courseStore.courses.find(c => c.id === courseId)
     currentCourseName.value = course ? course.name : ''
+    // 清空现有数据，确保不会使用旧数据
+    courseStudents.value = []
     // 自动加载学生
     loadCourseStudents()
   } else {
@@ -189,14 +191,18 @@ const loadCourseStudents = async () => {
 
   loading.value = true
   try {
+    console.log('开始加载课程学生数据，课程ID:', selectedCourseId.value)
+    
     // 1. 获取课程学生列表
     const students = await courseStore.fetchCourseStudents(selectedCourseId.value, 1000)
+    console.log('获取到的原始学生数据:', students)
     
     // 2. 获取该课程已有的成绩记录
     const gradesResponse = await gradeStore.fetchGrades({
       courseId: selectedCourseId.value,
       limit: 1000
     })
+    console.log('获取到的成绩数据:', gradesResponse.data)
     
     // 3. 将成绩数据合并到学生列表中
     const studentsWithScores = students.map(student => {
@@ -205,7 +211,7 @@ const loadCourseStudents = async () => {
         g => g.studentId === student.studentId
       )
       
-      return {
+      const result = {
         ...student,
         // 统一字段名：将 name 转换为 studentName 以匹配表格显示
         studentName: student.name,
@@ -214,11 +220,17 @@ const loadCourseStudents = async () => {
         // 保存成绩ID，用于更新操作
         gradeId: gradeRecord ? gradeRecord.id : null
       }
+      
+      return result
     })
+    
+    console.log('合并后的学生数据:', studentsWithScores)
+    console.log('班级信息检查:', studentsWithScores.map(s => ({ name: s.studentName, class: s.class })))
     
     courseStudents.value = studentsWithScores
     ElMessage.success(`成功加载 ${studentsWithScores.length} 名学生`)
   } catch (error) {
+    console.error('加载学生和成绩失败:', error)
     ElMessage.error('加载学生和成绩失败')
   } finally {
     loading.value = false
@@ -405,12 +417,44 @@ const clearAllScores = async () => {
 }
 
 // 生命周期
-onMounted(() => {
-  loadCourses()
+onMounted(async () => {
+  await loadCourses()
   
   // 权限检查
   if (!authStore.isAdmin && !authStore.isTeacher) {
     ElMessage.warning('您没有成绩录入权限')
+  }
+})
+
+// 每次进入界面时强制重新加载数据，确保班级信息完整
+onActivated(async () => {
+  console.log('成绩录入界面被激活，开始强制刷新数据...')
+  
+  // 1. 重置所有相关数据，确保班级信息不会残留
+  courseStudents.value = []
+  currentCourseName.value = ''
+  
+  // 2. 重新加载课程列表
+  await loadCourses()
+  
+  // 3. 如果之前已经选择了课程，强制重新加载学生数据
+  if (selectedCourseId.value) {
+    console.log('检测到已选择课程，强制重新加载学生数据:', selectedCourseId.value)
+    
+    // 清空当前数据，确保不会使用缓存
+    courseStudents.value = []
+    
+    // 强制重新加载
+    await loadCourseStudents()
+    
+    // 验证班级信息是否加载成功
+    if (courseStudents.value.length > 0) {
+      const hasClassInfo = courseStudents.value.some(s => s.class)
+      console.log(`班级信息加载验证: ${hasClassInfo ? '成功' : '失败'}`)
+      if (!hasClassInfo) {
+        console.warn('警告：班级信息未正确加载')
+      }
+    }
   }
 })
 </script>
