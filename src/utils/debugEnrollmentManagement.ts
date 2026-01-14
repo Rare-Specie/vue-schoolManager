@@ -54,9 +54,15 @@ export async function debugEnrollmentManagementFlow() {
     console.log('测试学生:', testStudent)
     
     // 检查课程编号是否有效
-    if (!testCourse.courseId || testCourse.courseId.trim() === '') {
+    if (!testCourse || !testCourse.courseId || testCourse.courseId.trim() === '') {
       console.error('❌ 错误：课程编号为空')
       ElMessage.error('课程编号无效')
+      return false
+    }
+    
+    if (!testStudent || !testStudent.studentId) {
+      console.error('❌ 错误：学生信息为空')
+      ElMessage.error('学生信息无效')
       return false
     }
     

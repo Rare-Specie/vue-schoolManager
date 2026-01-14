@@ -9,12 +9,15 @@ import {
   exportGrades,
   getCourseGrades,
   batchUpdateGrades,
+  getStudentGrades,
+  exportGradesWithHeaders,
   type Grade,
   type GradeListParams,
   type GradeFormData,
   type BatchGradeData
 } from './api/grade'
 import { ElMessage } from 'element-plus'
+import { useAuthStore } from './auth'
 
 export const useGradeStore = defineStore('grade', () => {
   const grades = ref<Grade[]>([])
@@ -40,8 +43,22 @@ export const useGradeStore = defineStore('grade', () => {
 
   // 录入成绩
   const addGrade = async (data: GradeFormData) => {
+    // 权限检查
+    const authStore = useAuthStore()
+    if (!authStore.isAdmin && !authStore.isTeacher) {
+      ElMessage.error('权限不足：只有管理员和教师可以录入成绩')
+      throw new Error('权限不足')
+    }
+    
     try {
-      const grade = await createGrade(data)
+      // 移除学期参数，只发送必要的字段
+      const gradeData = {
+        studentId: data.studentId,
+        courseId: data.courseId,
+        score: data.score
+      }
+      
+      const grade = await createGrade(gradeData)
       ElMessage.success('成绩录入成功')
       return grade
     } catch (error: any) {
@@ -50,6 +67,15 @@ export const useGradeStore = defineStore('grade', () => {
                       error.message || 
                       '成绩录入失败'
       
+      // 如果是成绩已存在的错误，创建特殊错误对象便于上层识别
+      if (errorMsg.includes('already exists') || errorMsg.includes('已存在') || error.response?.status === 409) {
+        // 创建一个特殊的错误对象，便于上层识别并自动处理
+        const specialError = new Error(errorMsg) as any
+        specialError.response = error.response
+        specialError.isDuplicateError = true
+        throw specialError
+      }
+      
       ElMessage.error(`成绩录入失败: ${errorMsg}`)
       throw error
     }
@@ -57,8 +83,20 @@ export const useGradeStore = defineStore('grade', () => {
 
   // 更新成绩
   const updateGradeInfo = async (id: string, data: Partial<GradeFormData>) => {
+    // 权限检查
+    const authStore = useAuthStore()
+    if (!authStore.isAdmin && !authStore.isTeacher) {
+      ElMessage.error('权限不足：只有管理员和教师可以更新成绩')
+      throw new Error('权限不足')
+    }
+    
     try {
-      const grade = await updateGrade(id, data)
+      // 移除学期参数，只发送必要的字段
+      const updateData = {
+        score: data.score
+      }
+      
+      const grade = await updateGrade(id, updateData)
       ElMessage.success('成绩更新成功')
       return grade
     } catch (error: any) {
@@ -70,6 +108,13 @@ export const useGradeStore = defineStore('grade', () => {
 
   // 删除成绩
   const removeGrade = async (id: string, silent: boolean = false) => {
+    // 权限检查
+    const authStore = useAuthStore()
+    if (!authStore.isAdmin && !authStore.isTeacher) {
+      ElMessage.error('权限不足：只有管理员和教师可以删除成绩')
+      throw new Error('权限不足')
+    }
+    
     try {
       await deleteGrade(id)
       if (!silent) {
@@ -89,6 +134,14 @@ export const useGradeStore = defineStore('grade', () => {
 
   // 批量导入
   const importGradesData = async (data: { studentId: string; courseId: string; score: number }[]) => {
+    // 权限检查
+    const authStore = useAuthStore()
+    if (!authStore.isAdmin && !authStore.isTeacher) {
+      ElMessage.error('权限不足：只有管理员和教师可以批量导入成绩')
+      throw new Error('权限不足')
+    }
+    
+    loading.value = true
     try {
       const result = await importGrades(data)
       if (result.failed > 0) {
@@ -108,7 +161,16 @@ export const useGradeStore = defineStore('grade', () => {
   // 导出成绩数据
   const exportGradesData = async (params: GradeListParams = {}) => {
     try {
-      const blob = await exportGrades(params)
+      // 根据用户角色设置请求头参数
+      const authStore = useAuthStore()
+      const headers: Record<string, string> = {}
+      
+      // 如果是学生，只能导出自己的成绩
+      if (authStore.isStudent && authStore.user?.studentId) {
+        headers['X-Query-StudentId'] = authStore.user.studentId
+      }
+      
+      const blob = await exportGradesWithHeaders(params, headers)
       const url = window.URL.createObjectURL(blob)
       const link = document.createElement('a')
       link.href = url
@@ -123,9 +185,9 @@ export const useGradeStore = defineStore('grade', () => {
   }
 
   // 获取课程成绩列表
-  const fetchCourseGrades = async (courseId: string) => {
+  const fetchCourseGrades = async (courseId: string, semester?: string) => {
     try {
-      const data = await getCourseGrades(courseId)
+      const data = await getCourseGrades(courseId, semester)
       return data
     } catch (error) {
       ElMessage.error('获取课程成绩失败')
@@ -133,8 +195,33 @@ export const useGradeStore = defineStore('grade', () => {
     }
   }
 
+  // 获取学生成绩概览
+  const fetchStudentGrades = async (studentId: string) => {
+    // 权限检查：学生只能查看自己的成绩
+    const authStore = useAuthStore()
+    if (authStore.isStudent && authStore.user?.studentId !== studentId) {
+      ElMessage.error('权限不足：只能查看自己的成绩')
+      throw new Error('权限不足')
+    }
+    
+    try {
+      const data = await getStudentGrades(studentId)
+      return data
+    } catch (error) {
+      ElMessage.error('获取学生成绩概览失败')
+      throw error
+    }
+  }
+
   // 批量更新成绩
   const batchUpdate = async (data: BatchGradeData) => {
+    // 权限检查
+    const authStore = useAuthStore()
+    if (!authStore.isAdmin && !authStore.isTeacher) {
+      ElMessage.error('权限不足：只有管理员和教师可以批量更新成绩')
+      throw new Error('权限不足')
+    }
+    
     loading.value = true
     try {
       const result = await batchUpdateGrades(data)
@@ -171,6 +258,7 @@ export const useGradeStore = defineStore('grade', () => {
     importGradesData,
     exportGradesData,
     fetchCourseGrades,
+    fetchStudentGrades,
     batchUpdate,
     clearData
   }

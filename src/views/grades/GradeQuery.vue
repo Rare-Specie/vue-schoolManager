@@ -63,8 +63,7 @@
         >
           批量删除 ({{ selectedRows.length }})
         </el-button>
-        <el-button type="success" @click="exportData('excel')" :icon="Download">导出Excel</el-button>
-        <el-button type="info" @click="exportData('csv')" :icon="Document">导出CSV</el-button>
+        <el-button type="info" @click="exportData" :icon="Download">导出JSON</el-button>
         <el-button type="warning" @click="printResults" :icon="Printer">打印</el-button>
       </div>
     </el-card>
@@ -184,7 +183,7 @@ import { useStudentStore } from '@/stores/student'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance } from 'element-plus'
-import { Search, Refresh, Download, Document, Printer, Edit, Delete, Plus } from '@element-plus/icons-vue'
+import { Search, Refresh, Download, Printer, Edit, Delete } from '@element-plus/icons-vue'
 
 const gradeStore = useGradeStore()
 const courseStore = useCourseStore()
@@ -397,30 +396,32 @@ const batchDelete = async () => {
   }
 }
 
-// 导出数据
-const exportData = async (format: 'excel' | 'csv') => {
+// 导出数据为JSON
+const exportData = async () => {
   if (gradeStore.grades.length === 0) {
     ElMessage.warning('没有数据可导出')
     return
   }
 
-  const params: any = {
-    format
-  }
+  // 生成导出数据
+  const exportData = gradeStore.grades.map(grade => ({
+    学号: grade.studentId,
+    姓名: grade.studentName,
+    课程: grade.courseName,
+    成绩: grade.score,
+    录入时间: formatDate(grade.createdAt)
+  }))
 
-  if (searchForm.studentId) params.studentId = searchForm.studentId
-  if (searchForm.courseId) params.courseId = searchForm.courseId
-  if (searchForm.class) params.class = searchForm.class
-  if (searchForm.timeRange && searchForm.timeRange.length === 2) {
-    params.startTime = searchForm.timeRange[0]
-    params.endTime = searchForm.timeRange[1]
-  }
+  // 创建并下载JSON文件
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `成绩查询结果_${new Date().toISOString().split('T')[0]}.json`
+  link.click()
+  window.URL.revokeObjectURL(url)
 
-  try {
-    await gradeStore.exportGradesData(params)
-  } catch (error) {
-    // 错误已在store中处理
-  }
+  ElMessage.success(`已导出 ${exportData.length} 条成绩记录`)
 }
 
 // 打印结果
