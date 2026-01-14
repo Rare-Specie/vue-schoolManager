@@ -197,8 +197,7 @@ const quickActions = computed(() => {
   
   if (authStore.isStudent) {
     actions.push(
-      { label: '成绩查询', path: '/main/grades/query', icon: 'Search', type: 'primary' },
-      { label: '统计概览', path: '/main/statistics/overview', icon: 'DataAnalysis', type: 'success' }
+      { label: '成绩查询', path: '/main/grades/query', icon: 'Search', type: 'primary' }
     )
   } else if (authStore.isTeacher) {
     actions.push(

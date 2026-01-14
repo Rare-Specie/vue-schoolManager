@@ -177,7 +177,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, onActivated, computed } from 'vue'
 import { useGradeStore } from '@/stores/grade'
 import { useCourseStore } from '@/stores/course'
 import { useStudentStore } from '@/stores/student'
@@ -252,70 +252,51 @@ const resetSearch = () => {
   loadGrades()
 }
 
-// 加载成绩数据
+// 加载成绩数据（前端筛选）
 const loadGrades = async () => {
-  const params: any = {
-    page: pagination.page,
-    limit: pagination.limit
+  // 1. 获取所有成绩（不带筛选参数）
+  const gradesResponse = await gradeStore.fetchGrades({ page: 1, limit: 10000 })
+  let allGrades = gradesResponse.data || []
+
+  // 2. 获取所有学生信息（用于班级筛选和补全）
+  let studentClassMap = new Map()
+  try {
+    const studentsResponse = await studentStore.fetchStudents({ page: 1, limit: 10000 })
+    studentsResponse.data.forEach(student => {
+      studentClassMap.set(student.studentId, student.class)
+    })
+  } catch (error) {
+    // 获取失败时，班级用'-'
   }
 
-  if (searchForm.studentId) params.studentId = searchForm.studentId
-  if (searchForm.courseId) {
-    // 查找课程，获取课程编号
-    const course = courseStore.courses.find(c => c.id === searchForm.courseId)
-    if (course) {
-      params.courseId = course.courseId
+  // 3. 前端本地筛选
+  let filtered = allGrades.filter(grade => {
+    // 学号筛选
+    if (searchForm.studentId && grade.studentId !== searchForm.studentId) return false;
+    // 课程筛选
+    if (searchForm.courseId) {
+      const course = courseStore.courses.find(c => c.id === searchForm.courseId)
+      if (course && grade.courseId !== course.courseId) return false;
     }
-  }
-  if (searchForm.class) params.class = searchForm.class
-  if (searchForm.timeRange && searchForm.timeRange.length === 2) {
-    params.startTime = searchForm.timeRange[0]
-    params.endTime = searchForm.timeRange[1]
-  }
+    // 班级筛选
+    if (searchForm.class) {
+      const stuClass = studentClassMap.get(grade.studentId) || grade.class || '-';
+      if (!stuClass.includes(searchForm.class)) return false;
+    }
+    // 时间范围筛选
+    if (searchForm.timeRange && searchForm.timeRange.length === 2) {
+      const created = grade.createdAt ? grade.createdAt.slice(0, 10) : ''
+      if (created < searchForm.timeRange[0] || created > searchForm.timeRange[1]) return false;
+    }
+    return true;
+  })
 
-  // 获取成绩数据
-  const gradesResponse = await gradeStore.fetchGrades(params)
-  
-  // 获取成绩数据后，为每条记录获取学生的班级信息
-  if (gradesResponse.data && gradesResponse.data.length > 0) {
-    // 提取所有唯一的学号
-    const studentIds = [...new Set(gradesResponse.data.map(g => g.studentId))]
-    
-    // 批量获取学生信息
-    try {
-      // 创建学号到班级的映射
-      const studentClassMap = new Map()
-      
-      // 使用学生store获取所有学生，然后过滤出需要的学号
-      const studentsResponse = await studentStore.fetchStudents({
-        page: 1,
-        limit: 1000
-      })
-      
-      // 创建学号到班级的映射
-      studentsResponse.data.forEach(student => {
-        if (studentIds.includes(student.studentId)) {
-          studentClassMap.set(student.studentId, student.class)
-        }
-      })
-      
-      // 为成绩数据添加班级信息
-      gradeStore.grades = gradesResponse.data.map(grade => ({
-        ...grade,
-        class: studentClassMap.get(grade.studentId) || '-'
-      }))
-    } catch (error) {
-      console.warn('获取学生班级信息失败，将显示默认值:', error)
-      // 如果获取学生信息失败，保持原始数据，班级显示为'-'
-      gradeStore.grades = gradesResponse.data.map(grade => ({
-        ...grade,
-        class: '-'
-      }))
-    }
-  } else {
-    // 如果没有成绩数据，清空显示
-    gradeStore.grades = []
-  }
+  // 4. 为每条记录补全班级信息
+  gradeStore.grades = filtered.map(grade => ({
+    ...grade,
+    class: studentClassMap.get(grade.studentId) || grade.class || '-'
+  }))
+  gradeStore.total = gradeStore.grades.length
 }
 
 // 分页处理
@@ -388,7 +369,7 @@ const batchDelete = async () => {
 
   try {
     await ElMessageBox.confirm(
-      `确定要批量删除选中的 ${selectedRows.value.length} 条成绩记录吗？`,
+      `确定要批量删除选中的 ${selectedRows.value.length} 条成绩记录吗？删除后需要重新添加选课！！`,
       '批量删除警告',
       {
         type: 'warning',
@@ -597,6 +578,26 @@ onMounted(() => {
         ElMessage.warning('您的账号尚未绑定学号，无法查看个人成绩，请联系管理员绑定学号')
       }, 200)
     }
+  }
+})
+
+// 每次组件被激活时刷新数据（用于在路由切换回来或 keep-alive 激活时）
+onActivated(() => {
+  loadCourses()
+  if (authStore.isStudent) {
+    const sid = authStore.user?.studentId
+    if (sid) {
+      searchForm.studentId = sid
+      handleSearch()
+    } else {
+      searchForm.studentId = ''
+      setTimeout(() => {
+        ElMessage.warning('您的账号尚未绑定学号，无法查看个人成绩，请联系管理员绑定学号')
+      }, 200)
+    }
+  } else {
+    // 非学生角色，每次进入都刷新列表
+    loadGrades()
   }
 })
 </script>

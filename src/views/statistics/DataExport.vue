@@ -98,8 +98,8 @@
 
           <div class="filter-actions">
             <el-button @click="resetFilters" :icon="Refresh">重置筛选</el-button>
-            <el-button type="primary" @click="previewData" :icon="Search" :loading="loading.preview">
-              预览数据
+            <el-button type="success" @click="previewData" :icon="Search" :loading="loading.preview">
+              应用并预览数据
             </el-button>
           </div>
         </el-card>
@@ -194,7 +194,7 @@
         <!-- 导出操作 -->
         <div class="export-actions" v-if="exportForm.dataType">
           <el-button
-            type="primary"
+            type="success"
             size="large"
             @click="handleExport"
             :icon="Download"

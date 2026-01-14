@@ -25,10 +25,7 @@
             <el-icon><Search /></el-icon>
             <span>成绩查询</span>
           </el-menu-item>
-          <el-menu-item index="/main/statistics/overview">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>统计概览</span>
-          </el-menu-item>
+          <!-- 统计概览入口已移除，学生不可见 -->
         </template>
 
         <!-- 教师菜单 -->
@@ -87,7 +84,7 @@
               <span>统计分析</span>
             </template>
             <el-menu-item index="/main/statistics/overview">统计概览</el-menu-item>
-            <el-menu-item index="/main/statistics/export">数据导出 (待开发)</el-menu-item>
+            <el-menu-item index="/main/statistics/export">数据导出</el-menu-item>
           </el-sub-menu>
 
           <el-sub-menu index="admin">
@@ -149,7 +146,12 @@
 
       <!-- 主要内容区域 -->
       <el-main class="main-content">
-        <router-view />
+        <!-- 使用 keep-alive 包裹路由组件，以便组件被激活时触发 onActivated -->
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </el-main>
     </el-container>
   </el-container>
@@ -293,6 +295,12 @@ let statusTimer: ReturnType<typeof setInterval> | null = null
 
 // 面包屑
 const breadcrumbs = computed(() => {
+  // 禁止学生进入统计概览页面
+  if (authStore.isStudent && route.path === '/main/statistics/overview') {
+    // 自动重定向到个人中心或成绩查询
+    router.replace('/main/profile')
+    return []
+  }
   return route.matched.filter(item => 
     (item.meta?.title || item.name) && item.name !== 'main'
   )
