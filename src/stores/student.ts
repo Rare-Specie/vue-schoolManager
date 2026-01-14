@@ -8,6 +8,7 @@ import {
   deleteStudent,
   importStudents,
   exportStudents,
+  exportStudentsAsFormat,
   getStudentGradesOverview,
   type Student,
   type StudentListParams,
@@ -142,6 +143,41 @@ export const useStudentStore = defineStore('student', () => {
       link.click()
       window.URL.revokeObjectURL(url)
       ElMessage.success('导出成功')
+    } catch (error) {
+      ElMessage.error('导出失败')
+      throw error
+    }
+  }
+
+  // 导出学生数据为指定格式
+  const exportStudentsAsFormat = async (params: { class?: string; search?: string; format?: 'json' | 'csv' | 'excel' } = {}) => {
+    try {
+      const blob = await exportStudentsAsFormat(params)
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      
+      let fileName = ''
+      let extension = ''
+      
+      switch (params.format || 'json') {
+        case 'json':
+          extension = 'json'
+          break
+        case 'csv':
+          extension = 'csv'
+          break
+        case 'excel':
+          extension = 'xlsx'
+          break
+      }
+      
+      fileName = `学生数据_${new Date().toISOString().split('T')[0]}.${extension}`
+      
+      link.download = fileName
+      link.click()
+      window.URL.revokeObjectURL(url)
+      ElMessage.success(`学生数据已导出为 ${(params.format || 'json').toUpperCase()} 格式`)
     } catch (error) {
       ElMessage.error('导出失败')
       throw error

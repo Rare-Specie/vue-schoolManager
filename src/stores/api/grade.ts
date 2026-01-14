@@ -124,3 +124,46 @@ export const exportGradesWithHeaders = (params: GradeListParams = {}, headers: R
     responseType: 'blob'
   })
 }
+
+// 导出成绩数据为指定格式
+export const exportGradesAsFormat = (params: GradeListParams = {}, format: 'json' | 'csv' | 'excel' = 'json', headers: Record<string, string> = {}): Promise<Blob> => {
+  // 先获取成绩数据，然后在前端转换为指定格式
+  return request.get('/grades', { 
+    params: {
+      studentId: params.studentId,
+      courseId: params.courseId,
+      class: params.class,
+      startTime: params.startTime,
+      endTime: params.endTime,
+      page: 1,
+      limit: 1000
+    },
+    headers
+  }).then((response: any) => {
+    const data = response.data || response
+    const formatType = format
+    
+    if (formatType === 'json') {
+      const jsonStr = JSON.stringify(data, null, 2)
+      return new Blob([jsonStr], { type: 'application/json' })
+    } else if (formatType === 'csv') {
+      // 生成CSV
+      const headers = ['学号', '姓名', '课程', '成绩', '录入时间']
+      const csvContent = [
+        headers.join(','),
+        ...data.map(grade => [
+          grade.studentId,
+          `"${grade.studentName.replace(/"/g, '""')}"`,
+          `"${grade.courseName.replace(/"/g, '""')}"`,
+          grade.score,
+          grade.createdAt || ''
+        ].join(','))
+      ].join('\n')
+      return new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    } else {
+      // Excel格式 - 使用JSON转换
+      const jsonStr = JSON.stringify(data, null, 2)
+      return new Blob([jsonStr], { type: 'application/json' })
+    }
+  })
+}

@@ -88,6 +88,46 @@ export const exportStudents = (): Promise<Blob> => {
   })
 }
 
+// 导出学生数据为指定格式
+export const exportStudentsAsFormat = (params: { class?: string; search?: string; format?: 'json' | 'csv' | 'excel' } = {}): Promise<Blob> => {
+  // 先获取学生数据，然后在前端转换为指定格式
+  return request.get('/students', { 
+    params: {
+      class: params.class,
+      search: params.search,
+      page: 1,
+      limit: 1000
+    }
+  }).then((response: any) => {
+    const data = response.data || response
+    const format = params.format || 'json'
+    
+    if (format === 'json') {
+      const jsonStr = JSON.stringify(data, null, 2)
+      return new Blob([jsonStr], { type: 'application/json' })
+    } else if (format === 'csv') {
+      // 生成CSV
+      const headers = ['学号', '姓名', '班级', '性别', '电话', '邮箱']
+      const csvContent = [
+        headers.join(','),
+        ...data.map(student => [
+          student.studentId,
+          `"${student.name.replace(/"/g, '""')}"`,
+          student.class,
+          student.gender === 'male' ? '男' : student.gender === 'female' ? '女' : '',
+          student.phone || '',
+          student.email || ''
+        ].join(','))
+      ].join('\n')
+      return new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    } else {
+      // Excel格式 - 使用JSON转换
+      const jsonStr = JSON.stringify(data, null, 2)
+      return new Blob([jsonStr], { type: 'application/json' })
+    }
+  })
+}
+
 // 获取学生成绩概览
 export const getStudentGradesOverview = (studentId: string): Promise<any> => {
   return request.get(`/students/${studentId}/grades`)

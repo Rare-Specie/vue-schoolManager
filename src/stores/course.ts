@@ -9,6 +9,7 @@ import {
   getCourseStudents,
   enrollStudent,
   unenrollStudent,
+  exportCoursesAsFormat,
   type Course,
   type CourseListParams,
   type CourseFormData,
@@ -150,6 +151,61 @@ export const useCourseStore = defineStore('course', () => {
     }
   }
 
+  // 导出课程数据为指定格式
+  const exportCoursesAsFormat = async (params: { search?: string; format?: 'json' | 'csv' | 'excel' } = {}) => {
+    try {
+      // 先获取课程数据
+      const response = await fetchCourses({ search: params.search, page: 1, limit: 1000 })
+      const coursesData = response.data
+      
+      // 根据格式转换数据
+      const format = params.format || 'json'
+      let blob: Blob
+      let fileName = ''
+      let extension = ''
+      
+      if (format === 'json') {
+        const jsonStr = JSON.stringify(coursesData, null, 2)
+        blob = new Blob([jsonStr], { type: 'application/json' })
+        extension = 'json'
+      } else if (format === 'csv') {
+        // 生成CSV
+        const headers = ['课程编号', '课程名称', '学分', '教师', '描述']
+        const csvContent = [
+          headers.join(','),
+          ...coursesData.map(course => [
+            course.courseId,
+            `"${course.name.replace(/"/g, '""')}"`,
+            course.credit,
+            course.teacher ? `"${course.teacher.replace(/"/g, '""')}"` : '',
+            course.description ? `"${course.description.replace(/"/g, '""')}"` : ''
+          ].join(','))
+        ].join('\n')
+        blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+        extension = 'csv'
+      } else {
+        // Excel格式 - 使用JSON转换
+        const jsonStr = JSON.stringify(coursesData, null, 2)
+        blob = new Blob([jsonStr], { type: 'application/json' })
+        extension = 'xlsx'
+      }
+      
+      fileName = `课程数据_${new Date().toISOString().split('T')[0]}.${extension}`
+      
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = fileName
+      link.click()
+      window.URL.revokeObjectURL(url)
+      
+      ElMessage.success(`课程数据已导出为 ${format.toUpperCase()} 格式`)
+    } catch (error) {
+      ElMessage.error('课程数据导出失败')
+      throw error
+    }
+  }
+
   // 清空当前课程
   const clearCurrentCourse = () => {
     currentCourse.value = null
@@ -171,6 +227,7 @@ export const useCourseStore = defineStore('course', () => {
     fetchCourseStudents,
     enrollStudentToCourse,
     unenrollStudentFromCourse,
+    exportCoursesAsFormat,
     clearCurrentCourse
   }
 })

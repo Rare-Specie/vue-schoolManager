@@ -39,6 +39,41 @@ export interface CourseStudent {
   score?: number
 }
 
+// 辅助函数：将数据转换为指定格式
+function convertToExportFormat(data: any[], format: 'json' | 'csv' | 'excel', type: string): Blob {
+  if (format === 'json') {
+    const jsonStr = JSON.stringify(data, null, 2)
+    return new Blob([jsonStr], { type: 'application/json' })
+  } else if (format === 'csv') {
+    let csvContent = ''
+    if (data.length > 0) {
+      // 生成表头
+      const headers = Object.keys(data[0])
+      csvContent += headers.join(',') + '\n'
+      
+      // 生成数据行
+      data.forEach(row => {
+        const values = headers.map(header => {
+          const value = row[header]
+          if (value === null || value === undefined) return ''
+          // 处理包含逗号的值
+          const strValue = String(value)
+          if (strValue.includes(',') || strValue.includes('"')) {
+            return `"${strValue.replace(/"/g, '""')}"`
+          }
+          return strValue
+        })
+        csvContent += values.join(',') + '\n'
+      })
+    }
+    return new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' })
+  } else {
+    // Excel格式 - 简单实现，实际项目中可能需要更复杂的处理
+    const jsonStr = JSON.stringify(data, null, 2)
+    return new Blob([jsonStr], { type: 'application/json' })
+  }
+}
+
 // 获取课程列表
 export const getCourses = (params: CourseListParams = {}): Promise<CourseListResponse> => {
   console.log('=== API getCourses 调用 ===')
@@ -48,6 +83,23 @@ export const getCourses = (params: CourseListParams = {}): Promise<CourseListRes
   return request.get('/courses', { params }).then((response: any) => {
     console.log('API 返回:', response)
     return response
+  })
+}
+
+// 导出课程数据为指定格式
+export const exportCoursesAsFormat = (params: { search?: string; format?: 'json' | 'csv' | 'excel' } = {}): Promise<Blob> => {
+  // 注意：后端可能没有专门的课程导出接口，这里假设使用课程列表接口
+  // 如果后端有专门的导出接口，需要调整URL
+  return request.get('/courses/export', {
+    params,
+    responseType: 'blob'
+  }).catch(() => {
+    // 如果导出接口不存在，使用课程列表接口并转换为指定格式
+    return request.get('/courses', { params }).then((res: any) => {
+      const data = res.data || res
+      // 在前端转换为指定格式
+      return convertToExportFormat(data, params.format || 'json', 'courses')
+    })
   })
 }
 

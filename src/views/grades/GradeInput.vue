@@ -102,12 +102,12 @@
           保存所有已填写成绩
         </el-button>
         <el-button 
-          type="warning" 
+          type="danger" 
           @click="clearAllScores" 
           :icon="Delete"
           :disabled="!canEdit"
         >
-          清空所有成绩
+          删除所有成绩（学生也将被移除）
         </el-button>
       </div>
     </el-card>
@@ -382,7 +382,7 @@ const clearAllScores = async () => {
 
   try {
     await ElMessageBox.confirm(
-      `确定要清空 ${studentsWithGrades.length} 名学生的成绩吗？`,
+      `确定要删除 ${studentsWithGrades.length} 名学生的成绩吗？学生也将会被一并删除！！！！`,
       '清空确认',
       { type: 'warning' }
     )

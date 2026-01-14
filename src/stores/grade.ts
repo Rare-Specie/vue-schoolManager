@@ -11,6 +11,7 @@ import {
   batchUpdateGrades,
   getStudentGrades,
   exportGradesWithHeaders,
+  exportGradesAsFormat,
   type Grade,
   type GradeListParams,
   type GradeFormData,
@@ -178,6 +179,50 @@ export const useGradeStore = defineStore('grade', () => {
       link.click()
       window.URL.revokeObjectURL(url)
       ElMessage.success('导出成功')
+    } catch (error) {
+      ElMessage.error('导出失败')
+      throw error
+    }
+  }
+
+  // 导出成绩数据为指定格式
+  const exportGradesAsFormat = async (params: GradeListParams = {}, format: 'json' | 'csv' | 'excel' = 'json') => {
+    try {
+      // 根据用户角色设置请求头参数
+      const authStore = useAuthStore()
+      const headers: Record<string, string> = {}
+      
+      // 如果是学生，只能导出自己的成绩
+      if (authStore.isStudent && authStore.user?.studentId) {
+        headers['X-Query-StudentId'] = authStore.user.studentId
+      }
+      
+      const blob = await exportGradesAsFormat(params, format, headers)
+      const url = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      
+      let fileName = ''
+      let extension = ''
+      
+      switch (format) {
+        case 'json':
+          extension = 'json'
+          break
+        case 'csv':
+          extension = 'csv'
+          break
+        case 'excel':
+          extension = 'xlsx'
+          break
+      }
+      
+      fileName = `成绩数据_${new Date().toISOString().split('T')[0]}.${extension}`
+      
+      link.download = fileName
+      link.click()
+      window.URL.revokeObjectURL(url)
+      ElMessage.success(`成绩数据已导出为 ${format.toUpperCase()} 格式`)
     } catch (error) {
       ElMessage.error('导出失败')
       throw error
