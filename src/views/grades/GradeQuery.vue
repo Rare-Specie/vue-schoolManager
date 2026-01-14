@@ -286,7 +286,8 @@ const loadGrades = async () => {
     // 时间范围筛选
     if (searchForm.timeRange && searchForm.timeRange.length === 2) {
       const created = grade.createdAt ? grade.createdAt.slice(0, 10) : ''
-      if (created < searchForm.timeRange[0] || created > searchForm.timeRange[1]) return false;
+      const [startDate, endDate] = searchForm.timeRange
+      if (startDate && endDate && (created < startDate || created > endDate)) return false;
     }
     return true;
   })
