@@ -1,568 +1,649 @@
 <template>
-  <div class="data-export-container">
-    <el-card class="main-card">
-      <template #header>
-        <div class="card-header">
-          <span>数据导出</span>
-        </div>
-      </template>
+  <div class="grade-query-container">
+    <!-- 查询条件 -->
+    <el-card class="search-card">
+      <div class="search-header">
+        <span class="title">导出数据筛选</span>
+      </div>
+      <el-form :inline="true" :model="searchForm" @submit.prevent="handleSearch">
+        <el-form-item label="学生学号">
+          <el-input
+            v-model="searchForm.studentId"
+            :disabled="authStore.isStudent"
+            placeholder="请输入学号"
+            clearable
+            @clear="handleSearch"
+          />
+        </el-form-item>
+        <el-form-item label="课程">
+          <el-select
+            v-model="searchForm.courseId"
+            placeholder="请选择课程"
+            filterable
+            clearable
+            style="width: 200px"
+          >
+            <el-option
+              v-for="course in courseOptions"
+              :key="course.id"
+              :label="course.name"
+              :value="course.id"
+            />
+          </el-select>
+        </el-form-item>
+        <el-form-item label="班级">
+          <el-input
+            v-model="searchForm.class"
+            placeholder="请输入班级"
+            clearable
+            @clear="handleSearch"
+          />
+        </el-form-item>
+        <el-form-item label="时间范围">
+          <el-date-picker
+            v-model="searchForm.timeRange"
+            type="daterange"
+            range-separator="至"
+            start-placeholder="开始日期"
+            end-placeholder="结束日期"
+            value-format="YYYY-MM-DD"
+            style="width: 220px"
+          />
+        </el-form-item>
+        <el-form-item>
+          <el-button type="success" @click="handleSearch" :icon="Check">确认</el-button>
+          <el-button @click="resetSearch" :icon="Refresh">重置</el-button>
+          <span class="hint-text">如果班级未能正常显示，请点击重置</span>
+        </el-form-item>
+      </el-form>
+
       
-      <div class="export-content">
-        <!-- 数据类型选择 -->
-        <el-card class="section-card" shadow="hover">
-          <template #header>
-            <div class="section-header">
-              <span>1. 选择导出数据类型</span>
-            </div>
+    </el-card>
+
+
+
+    <!-- 查询结果 -->
+    <el-card class="table-card">
+      <div class="table-header">
+        <span class="title">已选择的要导出的数据</span>
+        <span class="count" v-if="gradeStore.total > 0">共 {{ gradeStore.total }} 条记录</span>
+      </div>
+
+      <el-table
+        :data="gradeStore.grades"
+        v-loading="gradeStore.loading"
+        size="small"
+        style="width: 100%"
+      >
+        <el-table-column type="index" label="序号" width="60" align="center" />
+        <el-table-column prop="studentId" label="学号" width="120" align="center" />
+        <el-table-column prop="studentName" label="姓名" width="120" align="center" />
+        <el-table-column prop="class" label="班级" width="120" align="center">
+          <template #default="{ row }">
+            {{ row.class || '-' }}
           </template>
-          
-          <el-radio-group v-model="exportForm.dataType" size="large" @change="handleDataTypeChange">
-            <el-radio-button label="students">学生信息</el-radio-button>
-            <el-radio-button label="courses">课程信息</el-radio-button>
-            <el-radio-button label="grades">学生成绩</el-radio-button>
-          </el-radio-group>
-        </el-card>
-
-        <!-- 筛选条件 -->
-        <el-card class="section-card" shadow="hover" v-if="exportForm.dataType">
-          <template #header>
-            <div class="section-header">
-              <span>2. 设置筛选条件</span>
-            </div>
+        </el-table-column>
+        <el-table-column prop="courseName" label="课程" min-width="140" width="160" />
+        <el-table-column prop="score" label="成绩" width="80" align="center">
+          <template #default="{ row }">
+            {{ row.score }}
           </template>
-          
-          <el-form :model="exportForm" label-width="100px" class="filter-form">
-            <!-- 学生筛选条件 -->
-            <el-form-item label="班级" v-if="exportForm.dataType === 'students' || exportForm.dataType === 'grades'">
-              <el-input
-                v-model="exportForm.class"
-                placeholder="请输入班级名称（可选）"
-                clearable
-                @clear="handleFilterChange"
-              />
-            </el-form-item>
-
-            <!-- 课程筛选条件 -->
-            <el-form-item label="课程" v-if="exportForm.dataType === 'grades'">
-              <el-select
-                v-model="exportForm.courseId"
-                placeholder="请选择课程（可选）"
-                filterable
-                clearable
-                style="width: 100%"
-                @change="handleFilterChange"
-              >
-                <el-option
-                  v-for="course in courseOptions"
-                  :key="course.id"
-                  :label="course.name"
-                  :value="course.id"
-                />
-              </el-select>
-            </el-form-item>
-
-            <!-- 学生学号筛选 -->
-            <el-form-item label="学号" v-if="exportForm.dataType === 'grades'">
-              <el-input
-                v-model="exportForm.studentId"
-                placeholder="请输入学号（可选）"
-                clearable
-                @clear="handleFilterChange"
-              />
-            </el-form-item>
-
-            <!-- 搜索关键字 -->
-            <el-form-item label="搜索" v-if="exportForm.dataType !== 'grades'">
-              <el-input
-                v-model="exportForm.search"
-                placeholder="请输入搜索关键字（可选）"
-                clearable
-                @clear="handleFilterChange"
-              />
-            </el-form-item>
-
-            <!-- 成绩时间范围 -->
-            <el-form-item label="时间范围" v-if="exportForm.dataType === 'grades'">
-              <el-date-picker
-                v-model="exportForm.timeRange"
-                type="daterange"
-                range-separator="至"
-                start-placeholder="开始日期"
-                end-placeholder="结束日期"
-                value-format="YYYY-MM-DD"
-                style="width: 100%"
-                @change="handleFilterChange"
-              />
-            </el-form-item>
-          </el-form>
-
-          <div class="filter-actions">
-            <el-button @click="resetFilters" :icon="Refresh">重置筛选</el-button>
-            <el-button type="success" @click="previewData" :icon="Search" :loading="loading.preview">
-              应用并预览数据
-            </el-button>
-          </div>
-        </el-card>
-
-        <!-- 导出格式选择 -->
-        <el-card class="section-card" shadow="hover" v-if="exportForm.dataType">
-          <template #header>
-            <div class="section-header">
-              <span>3. 选择导出格式</span>
-            </div>
+        </el-table-column>
+        <el-table-column prop="createdAt" label="录入时间" width="160" align="center">
+          <template #default="{ row }">
+            {{ formatDate(row.createdAt) }}
           </template>
-          
-          <el-radio-group v-model="exportForm.format" size="large">
-            <el-radio-button label="json">JSON</el-radio-button>
-            <el-radio-button label="csv">CSV</el-radio-button>
-            <el-radio-button label="excel">Excel</el-radio-button>
-          </el-radio-group>
+        </el-table-column>
+        <!-- 操作列已移除，表格简化 -->
+      </el-table>
 
-          <div class="format-hint">
-            <el-alert
-              v-if="exportForm.format === 'json'"
-              type="info"
-              :closable="false"
-              description="JSON格式：适合程序处理，保留完整数据结构"
-            />
-            <el-alert
-              v-if="exportForm.format === 'csv'"
-              type="info"
-              :closable="false"
-              description="CSV格式：适合Excel导入，纯文本表格格式"
-            />
-            <el-alert
-              v-if="exportForm.format === 'excel'"
-              type="info"
-              :closable="false"
-              description="Excel格式：适合直接用Excel打开，包含格式信息"
-            />
-          </div>
-        </el-card>
+      <!-- 分页 -->
+      <div class="pagination-container" v-if="gradeStore.total > 0">
+        <el-pagination
+          v-model:current-page="pagination.page"
+          v-model:page-size="pagination.limit"
+          :total="gradeStore.total"
+          :page-sizes="[10, 20, 50, 100]"
+          layout="total, sizes, prev, pager, next, jumper"
+          @size-change="handleSizeChange"
+          @current-change="handlePageChange"
+        />
+      </div>
 
-        <!-- 数据预览 -->
-        <el-card class="section-card" shadow="hover" v-if="previewDataList.length > 0">
-          <template #header>
-            <div class="section-header">
-              <span>数据预览 (前 {{ Math.min(5, previewDataList.length) }} 条)</span>
-              <span class="count">共 {{ previewTotal }} 条记录</span>
-            </div>
-          </template>
-          
-          <el-table :data="previewDataList.slice(0, 5)" border stripe max-height="300">
-            <template v-if="exportForm.dataType === 'students'">
-              <el-table-column prop="studentId" label="学号" width="120" />
-              <el-table-column prop="name" label="姓名" width="100" />
-              <el-table-column prop="class" label="班级" width="120" />
-              <el-table-column prop="gender" label="性别" width="80">
-                <template #default="{ row }">
-                  {{ row.gender === 'male' ? '男' : row.gender === 'female' ? '女' : '-' }}
-                </template>
-              </el-table-column>
-              <el-table-column prop="phone" label="电话" />
-              <el-table-column prop="email" label="邮箱" />
-            </template>
+      <!-- 空状态 -->
+      <el-empty
+        v-if="!gradeStore.loading && gradeStore.grades.length === 0"
+        description="暂无查询结果"
+        class="empty-state"
+      />
+    </el-card>
 
-            <template v-if="exportForm.dataType === 'courses'">
-              <el-table-column prop="courseId" label="课程编号" width="120" />
-              <el-table-column prop="name" label="课程名称" min-width="150" />
-              <el-table-column prop="credit" label="学分" width="80" align="center" />
-              <el-table-column prop="teacher" label="教师" width="120" />
-              <el-table-column prop="description" label="描述" />
-            </template>
-
-            <template v-if="exportForm.dataType === 'grades'">
-              <el-table-column prop="studentId" label="学号" width="100" />
-              <el-table-column prop="studentName" label="姓名" width="100" />
-              <el-table-column prop="courseName" label="课程" min-width="150" />
-              <el-table-column prop="score" label="成绩" width="80" align="center">
-                <template #default="{ row }">
-                  <el-tag :type="getScoreTagType(row.score)" effect="dark">
-                    {{ row.score }}
-                  </el-tag>
-                </template>
-              </el-table-column>
-              <el-table-column prop="createdAt" label="录入时间" width="160" align="center">
-                <template #default="{ row }">
-                  {{ formatDate(row.createdAt) }}
-                </template>
-              </el-table-column>
-            </template>
-          </el-table>
-        </el-card>
-
-        <!-- 导出操作 -->
-        <div class="export-actions" v-if="exportForm.dataType">
-          <el-button
-            type="success"
-            size="large"
-            @click="handleExport"
-            :icon="Download"
-            :loading="loading.export"
-            :disabled="previewTotal === 0"
-          >
-            导出数据
+    <!-- 编辑成绩对话框 -->
+    <el-dialog
+      v-model="editDialog.visible"
+      title="编辑成绩"
+      width="400px"
+    >
+      <el-form
+        ref="editFormRef"
+        :model="editDialog.form"
+        :rules="editDialog.rules"
+        label-width="100px"
+      >
+        <el-form-item label="学生">
+          <span>{{ editDialog.studentName }}</span>
+        </el-form-item>
+        <el-form-item label="课程">
+          <span>{{ editDialog.courseName }}</span>
+        </el-form-item>
+        <el-form-item label="成绩" prop="score">
+          <el-input-number
+            v-model="editDialog.form.score"
+            :min="0"
+            :max="100"
+            :precision="1"
+            :step="1"
+            style="width: 100%"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="editDialog.visible = false">取消</el-button>
+          <el-button type="primary" @click="handleUpdate" :loading="editDialog.loading">
+            确定
           </el-button>
-          <el-button
-            size="large"
-            @click="clearAll"
-            :icon="Delete"
+        </span>
+      </template>
+    </el-dialog>
+    <!-- 导出模块（页面底部） -->
+    <el-card class="export-card">
+      <div class="export-header">
+        <span class="title">数据导出</span>
+      </div>
+
+      <div class="export-body">
+        <el-checkbox-group v-model="selectedFormats">
+          <el-checkbox
+            v-for="opt in exportOptions"
+            :key="opt.value"
+            :label="opt.value"
           >
-            清空
-          </el-button>
+            {{ opt.label }}
+          </el-checkbox>
+        </el-checkbox-group>
+
+        <div class="export-actions">
+          <el-button type="success" @click="handleExportAll" :icon="Download">导出所选格式</el-button>
+          <el-button type="primary" @click="printResults" :icon="Printer">打印/导出Pdf</el-button>
         </div>
 
-        <!-- 导出进度 -->
-        <el-dialog
-          v-model="exportDialog.visible"
-          title="导出进度"
-          width="400px"
-          :show-close="false"
-          :close-on-click-modal="false"
-          :close-on-press-escape="false"
-        >
-          <div class="progress-content">
-            <el-progress
-              type="circle"
-              :percentage="exportDialog.progress"
-              :status="exportDialog.status"
-              :stroke-width="10"
-              style="margin: 20px 0;"
-            />
-            <div class="progress-text">
-              <p>{{ exportDialog.message }}</p>
-              <p v-if="exportDialog.details" class="details">{{ exportDialog.details }}</p>
-            </div>
-          </div>
-          <template #footer>
-            <el-button
-              v-if="exportDialog.status === 'success' || exportDialog.status === 'exception'"
-              type="primary"
-              @click="closeExportDialog"
-            >
-              确定
-            </el-button>
-          </template>
-        </el-dialog>
+        <div class="export-hint">根据上方的筛选条件进行导出</div>
       </div>
     </el-card>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted } from 'vue'
-import { useStudentStore } from '@/stores/student'
-import { useCourseStore } from '@/stores/course'
+import { ref, reactive, onMounted, onActivated, computed } from 'vue'
 import { useGradeStore } from '@/stores/grade'
+import { useCourseStore } from '@/stores/course'
+import { useStudentStore } from '@/stores/student'
 import { useAuthStore } from '@/stores/auth'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Search, Download, Refresh, Delete } from '@element-plus/icons-vue'
+import type { FormInstance } from 'element-plus'
+import { Check, Refresh, Download, Printer, Edit, Delete } from '@element-plus/icons-vue'
+import * as XLSX from 'xlsx'
 
-const studentStore = useStudentStore()
-const courseStore = useCourseStore()
 const gradeStore = useGradeStore()
+const courseStore = useCourseStore()
+const studentStore = useStudentStore()
 const authStore = useAuthStore()
 
-// 导出表单数据
-const exportForm = reactive({
-  dataType: '' as 'students' | 'courses' | 'grades' | '',
+// 搜索表单
+const searchForm = reactive({
   studentId: '',
   courseId: '',
   class: '',
-  search: '',
-  timeRange: [] as string[],
-  format: 'json' as 'json' | 'csv' | 'excel'
+  timeRange: [] as string[]
 })
 
-// 加载状态
-const loading = reactive({
-  preview: false,
-  export: false
-})
-
-// 预览数据
-const previewDataList = ref<any[]>([])
-const previewTotal = ref(0)
-
-// 导出对话框
-const exportDialog = reactive({
-  visible: false,
-  progress: 0,
-  status: '' as 'success' | 'exception' | '',
-  message: '',
-  details: ''
+// 分页
+const pagination = reactive({
+  page: 1,
+  limit: 10
 })
 
 // 课程选项
 const courseOptions = computed(() => courseStore.courses)
 
+// 选中的记录
+const selectedRows = ref<any[]>([])
+
+// 编辑对话框
+const editDialog = ref({
+  visible: false,
+  loading: false,
+  currentId: '',
+  studentName: '',
+  courseName: '',
+  form: {
+    score: 0
+  },
+  rules: {
+    score: [
+      { required: true, message: '请输入成绩', trigger: 'blur' },
+      { type: 'number', min: 0, max: 100, message: '成绩必须在0-100之间', trigger: 'blur' }
+    ]
+  }
+})
+
+const editFormRef = ref<FormInstance>()
+
 // 加载课程列表
 const loadCourses = async () => {
+  await courseStore.fetchCourses({ page: 1, limit: 100 })
+}
+
+// 搜索
+const handleSearch = async () => {
+  pagination.page = 1
+  await loadGrades()
+}
+
+// 重置搜索
+const resetSearch = () => {
+  searchForm.studentId = ''
+  searchForm.courseId = ''
+  searchForm.class = ''
+  searchForm.timeRange = []
+  pagination.page = 1
+  loadGrades()
+}
+
+// 加载成绩数据（前端筛选）
+const loadGrades = async () => {
+  // 1. 获取所有成绩（不带筛选参数）
+  const gradesResponse = await gradeStore.fetchGrades({ page: 1, limit: 10000 })
+  let allGrades = gradesResponse.data || []
+
+  // 2. 获取所有学生信息（用于班级筛选和补全）
+  let studentClassMap = new Map()
   try {
-    await courseStore.fetchCourses({ page: 1, limit: 100 })
+    const studentsResponse = await studentStore.fetchStudents({ page: 1, limit: 10000 })
+    studentsResponse.data.forEach(student => {
+      studentClassMap.set(student.studentId, student.class)
+    })
   } catch (error) {
-    console.warn('加载课程列表失败:', error)
-  }
-}
-
-// 数据类型切换时的处理
-const handleDataTypeChange = () => {
-  // 清空预览数据
-  previewDataList.value = []
-  previewTotal.value = 0
-  
-  // 重置筛选条件
-  exportForm.studentId = ''
-  exportForm.courseId = ''
-  exportForm.class = ''
-  exportForm.search = ''
-  exportForm.timeRange = []
-  
-  // 如果是学生角色且选择成绩导出，自动填充学号
-  if (exportForm.dataType === 'grades' && authStore.isStudent && authStore.user?.studentId) {
-    exportForm.studentId = authStore.user.studentId
-  }
-}
-
-// 筛选条件变化
-const handleFilterChange = () => {
-  // 清空预览数据，需要重新预览
-  previewDataList.value = []
-  previewTotal.value = 0
-}
-
-// 重置筛选
-const resetFilters = () => {
-  exportForm.studentId = ''
-  exportForm.courseId = ''
-  exportForm.class = ''
-  exportForm.search = ''
-  exportForm.timeRange = []
-  previewDataList.value = []
-  previewTotal.value = 0
-}
-
-// 预览数据
-const previewData = async () => {
-  if (!exportForm.dataType) {
-    ElMessage.warning('请先选择导出数据类型')
-    return
+    // 获取失败时，班级用'-'
   }
 
-  loading.preview = true
-  try {
-    const params = buildParams()
-    let data: any[] = []
-
-    switch (exportForm.dataType) {
-      case 'students':
-        const studentsResponse = await studentStore.fetchStudents(params)
-        data = studentsResponse.data
-        break
-
-      case 'courses':
-        const coursesResponse = await courseStore.fetchCourses(params)
-        data = coursesResponse.data
-        break
-
-      case 'grades':
-        const gradesResponse = await gradeStore.fetchGrades(params)
-        data = gradesResponse.data
-        
-        // 获取成绩数据后，为每条记录获取学生的班级信息
-        if (data.length > 0) {
-          try {
-            // 提取所有唯一的学号
-            const studentIds = [...new Set(data.map(g => g.studentId))]
-            
-            // 批量获取学生信息
-            const studentsResponse = await studentStore.fetchStudents({
-              page: 1,
-              limit: 1000
-            })
-            
-            // 创建学号到班级的映射
-            const studentClassMap = new Map()
-            studentsResponse.data.forEach(student => {
-              if (studentIds.includes(student.studentId)) {
-                studentClassMap.set(student.studentId, student.class)
-              }
-            })
-            
-            // 为成绩数据添加班级信息
-            data = data.map(grade => ({
-              ...grade,
-              class: studentClassMap.get(grade.studentId) || '-'
-            }))
-          } catch (error) {
-            console.warn('获取学生班级信息失败:', error)
-            data = data.map(grade => ({
-              ...grade,
-              class: '-'
-            }))
-          }
-        }
-        break
+  // 3. 前端本地筛选
+  let filtered = allGrades.filter(grade => {
+    // 学号筛选
+    if (searchForm.studentId && grade.studentId !== searchForm.studentId) return false;
+    // 课程筛选
+    if (searchForm.courseId) {
+      const course = courseStore.courses.find(c => c.id === searchForm.courseId)
+      if (course && grade.courseId !== course.courseId) return false;
     }
-
-    previewDataList.value = data
-    previewTotal.value = data.length
-
-    if (data.length === 0) {
-      ElMessage.info('当前筛选条件下无数据')
-    } else {
-      ElMessage.success(`找到 ${data.length} 条记录，可预览前5条`)
+    // 班级筛选
+    if (searchForm.class) {
+      const stuClass = studentClassMap.get(grade.studentId) || grade.class || '-';
+      if (!stuClass.includes(searchForm.class)) return false;
     }
-  } catch (error) {
-    ElMessage.error('预览数据失败')
-    console.error('预览错误:', error)
-  } finally {
-    loading.preview = false
-  }
+    // 时间范围筛选
+    if (searchForm.timeRange && searchForm.timeRange.length === 2) {
+      const created = grade.createdAt ? grade.createdAt.slice(0, 10) : ''
+      const [startDate, endDate] = searchForm.timeRange
+      if (startDate && endDate && (created < startDate || created > endDate)) return false;
+    }
+    return true;
+  })
+
+  // 4. 为每条记录补全班级信息
+  gradeStore.grades = filtered.map(grade => ({
+    ...grade,
+    class: studentClassMap.get(grade.studentId) || grade.class || '-'
+  }))
+  gradeStore.total = gradeStore.grades.length
 }
 
-// 构建请求参数
-const buildParams = () => {
-  const params: any = {
-    page: 1,
-    limit: 1000 // 获取大量数据用于导出
-  }
+// 分页处理
+const handlePageChange = (page: number) => {
+  pagination.page = page
+  loadGrades()
+}
 
-  if (exportForm.dataType === 'students') {
-    if (exportForm.class) params.class = exportForm.class
-    if (exportForm.search) params.search = exportForm.search
-  } else if (exportForm.dataType === 'courses') {
-    if (exportForm.search) params.search = exportForm.search
-  } else if (exportForm.dataType === 'grades') {
-    if (exportForm.studentId) params.studentId = exportForm.studentId
-    if (exportForm.courseId) {
-      // 查找课程，获取课程编号
-      const course = courseStore.courses.find(c => c.id === exportForm.courseId)
-      if (course) {
-        params.courseId = course.courseId
+const handleSizeChange = (size: number) => {
+  pagination.limit = size
+  pagination.page = 1
+  loadGrades()
+}
+
+// 选择变化
+const handleSelectionChange = (rows: any[]) => {
+  selectedRows.value = rows
+}
+
+// 编辑成绩
+const editGrade = (row: any) => {
+  editDialog.value.visible = true
+  editDialog.value.currentId = row.id
+  editDialog.value.studentName = row.studentName
+  editDialog.value.courseName = row.courseName
+  editDialog.value.form.score = row.score
+}
+
+// 提交更新
+const handleUpdate = async () => {
+  if (!editFormRef.value) return
+
+  await editFormRef.value.validate(async (valid) => {
+    if (valid) {
+      editDialog.value.loading = true
+      try {
+        await gradeStore.updateGradeInfo(editDialog.value.currentId, {
+          score: editDialog.value.form.score
+        })
+        editDialog.value.visible = false
+        await loadGrades()
+      } catch (error) {
+        // 错误已在store中处理
+      } finally {
+        editDialog.value.loading = false
       }
     }
-    if (exportForm.class) params.class = exportForm.class
-    if (exportForm.timeRange && exportForm.timeRange.length === 2) {
-      params.startTime = exportForm.timeRange[0]
-      params.endTime = exportForm.timeRange[1]
-    }
-  }
-
-  return params
+  })
 }
 
-// 执行导出
-const handleExport = async () => {
-  if (!exportForm.dataType) {
-    ElMessage.warning('请先选择导出数据类型')
+// 删除成绩
+const deleteGrade = async (row: any) => {
+  try {
+    await ElMessageBox.confirm(`确定要删除 ${row.studentName} 的 ${row.courseName} 成绩吗？`, '警告', {
+      type: 'warning'
+    })
+    await gradeStore.removeGrade(row.id)
+    await loadGrades()
+  } catch (cancel) {
+    // 用户取消
+  }
+}
+
+// 批量删除成绩
+const batchDelete = async () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请先选择要删除的成绩')
     return
   }
 
-  if (previewTotal.value === 0) {
-    ElMessage.warning('没有数据可导出，请先预览数据')
-    return
-  }
-
-  // 确认导出
   try {
     await ElMessageBox.confirm(
-      `确定要导出 ${previewTotal.value} 条${getDataTypeName()}数据为 ${exportForm.format.toUpperCase()} 格式吗？`,
-      '确认导出',
-      { type: 'info' }
+      `确定要批量删除选中的 ${selectedRows.value.length} 条成绩记录吗？删除后需要重新添加选课！！`,
+      '批量删除警告',
+      {
+        type: 'warning',
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消'
+      }
     )
+
+    // 显示加载状态
+    gradeStore.loading = true
+
+    // 逐个删除选中的记录
+    let successCount = 0
+    let failCount = 0
+    const failMessages: string[] = []
+
+    for (const row of selectedRows.value) {
+      try {
+        // 使用 silent 模式避免重复显示成功消息
+        await gradeStore.removeGrade(row.id, true)
+        successCount++
+      } catch (error) {
+        failCount++
+        failMessages.push(`${row.studentName} - ${row.courseName}`)
+      }
+    }
+
+    // 显示结果
+    if (failCount === 0) {
+      ElMessage.success(`批量删除成功：${successCount} 条记录`)
+    } else {
+      ElMessage.warning(`批量删除完成：成功 ${successCount} 条，失败 ${failCount} 条`)
+      if (failMessages.length > 0) {
+        ElMessage.info(`失败记录：${failMessages.join('、')}`)
+      }
+    }
+
+    // 清空选择
+    selectedRows.value = []
+    
+    // 重新加载数据
+    await loadGrades()
+
   } catch (cancel) {
+    // 用户取消
+  } finally {
+    gradeStore.loading = false
+  }
+}
+
+// 导出数据为JSON
+const exportData = async () => {
+  if (gradeStore.grades.length === 0) {
+    ElMessage.warning('没有数据可导出')
     return
   }
 
-  loading.export = true
-  exportDialog.visible = true
-  exportDialog.progress = 0
-  exportDialog.status = ''
-  exportDialog.message = '正在准备导出数据...'
-  exportDialog.details = ''
+  // 生成导出数据
+  const exportData = gradeStore.grades.map(grade => ({
+    学号: grade.studentId,
+    姓名: grade.studentName,
+    课程: grade.courseName,
+    成绩: grade.score,
+    录入时间: formatDate(grade.createdAt)
+  }))
 
-  try {
-    // 模拟进度更新
-    const progressInterval = setInterval(() => {
-      if (exportDialog.progress < 80) {
-        exportDialog.progress += 10
-      }
-    }, 200)
+  // 创建并下载JSON文件
+  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `成绩查询结果_${new Date().toISOString().split('T')[0]}.json`
+  link.click()
+  window.URL.revokeObjectURL(url)
 
-    const params = buildParams()
+  ElMessage.success(`已导出 ${exportData.length} 条成绩记录`)
+}
 
-    switch (exportForm.dataType) {
-      case 'students':
-        exportDialog.message = '正在导出学生数据...'
-        await studentStore.exportStudentsAsFormat({
-          class: exportForm.class,
-          search: exportForm.search,
-          format: exportForm.format
-        })
-        break
+// ===== 新增：导出模块（JSON 原始、CSV、XLSX） =====
+const exportOptions = [
+  { label: 'JSON（原始）', value: 'json' },
+  { label: 'CSV', value: 'csv' },
+  { label: 'Excel（xlsx）', value: 'xlsx' }
+]
 
-      case 'courses':
-        exportDialog.message = '正在导出课程数据...'
-        await courseStore.exportCoursesAsFormat({
-          search: exportForm.search,
-          format: exportForm.format
-        })
-        break
+const selectedFormats = ref<string[]>(['json'])
 
-      case 'grades':
-        exportDialog.message = '正在导出成绩数据...'
-        await gradeStore.exportGradesAsFormat(params, exportForm.format)
-        break
+const getExportRows = () => {
+  // 使用当前已筛选并展示的成绩数据
+  return gradeStore.grades.map(g => ({
+    studentId: g.studentId,
+    studentName: g.studentName,
+    class: g.class || '-',
+    courseId: g.courseId,
+    courseName: g.courseName,
+    score: g.score,
+    createdAt: g.createdAt
+  }))
+}
+
+const downloadBlob = (blob: Blob, filename: string) => {
+  const url = window.URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  window.URL.revokeObjectURL(url)
+}
+
+const exportAsJSONRaw = () => {
+  const rows = getExportRows()
+  const blob = new Blob([JSON.stringify(rows, null, 2)], { type: 'application/json' })
+  const fname = `成绩原始数据_${new Date().toISOString().split('T')[0]}.json`
+  downloadBlob(blob, fname)
+}
+
+const toCSV = (rows: any[]) => {
+  if (!rows || rows.length === 0) return ''
+  const keys = Object.keys(rows[0])
+  const escape = (v: any) => {
+    if (v === null || v === undefined) return ''
+    const s = String(v)
+    if (s.includes(',') || s.includes('\n') || s.includes('"')) {
+      return '"' + s.replace(/"/g, '""') + '"'
     }
+    return s
+  }
+  const header = keys.join(',')
+  const lines = rows.map(r => keys.map(k => escape(r[k])).join(','))
+  return [header, ...lines].join('\n')
+}
 
-    clearInterval(progressInterval)
-    exportDialog.progress = 100
-    exportDialog.status = 'success'
-    exportDialog.message = '导出成功！'
-    exportDialog.details = `已导出 ${previewTotal.value} 条${getDataTypeName()}数据`
+const exportAsCSV = () => {
+  const rows = getExportRows()
+  if (rows.length === 0) {
+    ElMessage.warning('没有数据可导出')
+    return
+  }
+  const csv = toCSV(rows)
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const fname = `成绩查询结果_${new Date().toISOString().split('T')[0]}.csv`
+  downloadBlob(blob, fname)
+}
 
-    ElMessage.success('数据导出成功')
-  } catch (error) {
-    exportDialog.status = 'exception'
-    exportDialog.message = '导出失败'
-    exportDialog.details = '请检查网络连接或稍后重试'
-    ElMessage.error('数据导出失败')
-    console.error('导出错误:', error)
-  } finally {
-    loading.export = false
+const exportAsXLSX = () => {
+  const rows = getExportRows()
+  if (rows.length === 0) {
+    ElMessage.warning('没有数据可导出')
+    return
+  }
+  try {
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, '成绩')
+    XLSX.writeFile(wb, `成绩查询结果_${new Date().toISOString().split('T')[0]}.xlsx`)
+  } catch (err) {
+    ElMessage.error('生成 Excel 失败：' + String(err))
   }
 }
 
-// 关闭导出对话框
-const closeExportDialog = () => {
-  exportDialog.visible = false
-}
-
-// 清空所有
-const clearAll = () => {
-  exportForm.dataType = ''
-  exportForm.studentId = ''
-  exportForm.courseId = ''
-  exportForm.class = ''
-  exportForm.search = ''
-  exportForm.timeRange = []
-  exportForm.format = 'json'
-  previewDataList.value = []
-  previewTotal.value = 0
-}
-
-// 辅助函数：获取数据类型名称
-const getDataTypeName = () => {
-  switch (exportForm.dataType) {
-    case 'students': return '学生'
-    case 'courses': return '课程'
-    case 'grades': return '成绩'
-    default: return ''
+const handleExportAll = async () => {
+  if (!selectedFormats.value || selectedFormats.value.length === 0) {
+    ElMessage.warning('请选择要导出的格式')
+    return
   }
+
+  // 依据所选格式逐个导出
+  for (const fmt of selectedFormats.value) {
+    if (fmt === 'json') exportAsJSONRaw()
+    else if (fmt === 'csv') exportAsCSV()
+    else if (fmt === 'xlsx') exportAsXLSX()
+  }
+
+  ElMessage.success(`已导出 ${gradeStore.grades.length} 条记录`) 
+}
+// ===== 新增导出模块结束 =====
+
+// 打印结果
+const printResults = () => {
+  if (gradeStore.grades.length === 0) {
+    ElMessage.warning('没有数据可打印')
+    return
+  }
+
+  // 生成打印内容
+  const printWindow = window.open('', '_blank')
+  if (!printWindow) {
+    ElMessage.error('无法打开打印窗口，请检查浏览器设置')
+    return
+  }
+
+  const styles = `
+    <style>
+      body { font-family: Arial, sans-serif; padding: 20px; }
+      h2 { text-align: center; margin-bottom: 20px; }
+      table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
+      th, td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+      th { background-color: #f2f2f2; font-weight: bold; }
+      .info { margin-bottom: 10px; color: #666; }
+      @media print { button { display: none; } }
+    </style>
+  `
+
+  const filters = `
+    <div class="info">
+      <strong>查询条件：</strong>
+      ${searchForm.studentId ? `学号：${searchForm.studentId} ` : ''}
+      ${searchForm.class ? `班级：${searchForm.class} ` : ''}
+      ${searchForm.courseId ? `课程：${courseOptions.value.find(c => c.id === searchForm.courseId)?.name} ` : ''}
+      ${searchForm.timeRange && searchForm.timeRange.length === 2 ? `时间：${searchForm.timeRange[0]} 至 ${searchForm.timeRange[1]}` : ''}
+    </div>
+  `
+
+  const table = `
+    <table>
+      <thead>
+        <tr>
+          <th>序号</th>
+          <th>学号</th>
+          <th>姓名</th>
+          <th>班级</th>
+          <th>课程</th>
+          <th>成绩</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${gradeStore.grades.map((grade, index) => `
+          <tr>
+            <td>${index + 1}</td>
+            <td>${grade.studentId}</td>
+            <td>${grade.studentName}</td>
+            <td>-</td>
+            <td>${grade.courseName}</td>
+            <td><strong>${grade.score}</strong></td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `
+
+  const printContent = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>成绩查询结果 - 打印</title>
+        ${styles}
+      </head>
+      <body>
+        <h2>成绩查询结果</h2>
+        ${filters}
+        ${table}
+        <div style="text-align: center; margin-top: 20px;">
+          <button onclick="window.print()" style="padding: 8px 16px; cursor: pointer;">打印/导出Pdf</button>
+          <button onclick="window.close()" style="padding: 8px 16px; margin-left: 10px; cursor: pointer;">关闭</button>
+        </div>
+      </body>
+    </html>
+  `
+
+  printWindow.document.write(printContent)
+  printWindow.document.close()
 }
 
-// 辅助函数：获取成绩标签类型
+// 根据分数获取标签类型
 const getScoreTagType = (score: number) => {
   if (score >= 90) return 'success'
   if (score >= 80) return 'primary'
@@ -570,7 +651,13 @@ const getScoreTagType = (score: number) => {
   return 'danger'
 }
 
-// 辅助函数：格式化日期
+// 获取学生班级（从成绩数据中推断）
+const getStudentClass = (studentId: string) => {
+  // 这里可以根据需要从其他数据源获取
+  return '-'
+}
+
+// 格式化日期
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return ''
   const date = new Date(dateStr)
@@ -583,122 +670,199 @@ const formatDate = (dateStr?: string) => {
   })
 }
 
-// 组件挂载时加载课程列表
 onMounted(() => {
   loadCourses()
+  // 如果是学生角色，自动填充学号（使用 user.studentId）
+  if (authStore.isStudent) {
+    const sid = authStore.user?.studentId
+    if (sid) {
+      searchForm.studentId = sid
+      handleSearch()
+    } else {
+      // 未绑定学号，提示并禁止查询
+      searchForm.studentId = ''
+      // 不自动查询，提示用户绑定学号
+      // 使用 setTimeout 以避免 onMounted 中打断流程
+      setTimeout(() => {
+        ElMessage.warning('您的账号尚未绑定学号，无法查看个人成绩，请联系管理员绑定学号')
+      }, 200)
+    }
+  }
+})
+
+// 每次组件被激活时刷新数据（用于在路由切换回来或 keep-alive 激活时）
+onActivated(() => {
+  loadCourses()
+  if (authStore.isStudent) {
+    const sid = authStore.user?.studentId
+    if (sid) {
+      searchForm.studentId = sid
+      handleSearch()
+    } else {
+      searchForm.studentId = ''
+      setTimeout(() => {
+        ElMessage.warning('您的账号尚未绑定学号，无法查看个人成绩，请联系管理员绑定学号')
+      }, 200)
+    }
+  } else {
+    // 非学生角色，每次进入都刷新列表
+    loadGrades()
+  }
 })
 </script>
 
 <style scoped>
-.data-export-container {
-  padding: 20px;
-  height: 100%;
-  overflow-y: auto;
+.grade-query-container {
+  padding: 0;
 }
 
-.main-card {
-  height: 100%;
-  min-height: 600px;
+.search-card {
+  margin-bottom: 20px;
 }
 
-.card-header {
+.action-buttons {
+  margin-top: 16px;
   display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
 }
 
-.export-content {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.section-card {
-  margin-bottom: 10px;
-}
-
-.section-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  font-weight: 600;
-  color: #303133;
-}
-
-.section-header .count {
-  font-size: 14px;
+.hint-text {
+  font-size: 12px;
   color: #909399;
-  font-weight: normal;
+  margin-left: 8px;
+  font-style: italic;
 }
 
-.filter-form {
-  margin-top: 10px;
+.table-card {
+  margin-bottom: 20px;
 }
 
-.filter-actions {
+.table-header {
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ebeef5;
   display: flex;
-  gap: 10px;
-  margin-top: 15px;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-header .title {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.table-header .count {
+  font-size: 14px;
+  color: #666;
+}
+
+.pagination-container {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.empty-state {
+  padding: 60px 0;
+}
+
+.dialog-footer {
+  display: flex;
   justify-content: flex-end;
-}
-
-.format-hint {
-  margin-top: 15px;
-  display: flex;
-  flex-direction: column;
   gap: 8px;
 }
 
+.export-card {
+  margin-bottom: 20px;
+}
+.export-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+}
+.export-header .title {
+  font-size: 18px;
+  font-weight: 600;
+}
+.export-header .count {
+  font-size: 14px;
+  color: #666;
+}
+
+.search-header {
+  display: flex;
+  align-items: center;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #ebeef5;
+  margin-bottom: 12px;
+}
+.search-header .title {
+  font-size: 18px;
+  font-weight: 600;
+}
+.export-body {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
 .export-actions {
   display: flex;
-  gap: 10px;
-  justify-content: center;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #ebeef5;
-}
-
-.progress-content {
-  display: flex;
-  flex-direction: column;
+  gap: 8px;
   align-items: center;
-  justify-content: center;
-  padding: 20px;
 }
-
-.progress-text {
-  text-align: center;
-  margin-top: 10px;
-}
-
-.progress-text p {
-  margin: 5px 0;
-  font-size: 14px;
-  color: #606266;
-}
-
-.progress-text .details {
+.export-hint {
   font-size: 12px;
   color: #909399;
+  margin-left: 8px;
 }
 
-@media (max-width: 768px) {
-  .data-export-container {
-    padding: 10px;
-  }
-  
-  .export-actions {
-    flex-direction: column;
-  }
-  
-  .filter-actions {
-    flex-direction: column;
-  }
-  
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 5px;
-  }
+/* 紧凑表格样式 */
+.table-card ::v-deep .el-table th,
+.table-card ::v-deep .el-table td {
+  padding: 6px 8px;
+  font-size: 13px;
+}
+
+.table-card ::v-deep .el-table .el-table__row {
+  height: 38px;
+}
+
+/* 现代化滚动条样式 - Vue3风格 */
+/* Webkit 浏览器 (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(156, 163, 175, 0.5);
+  border-radius: 4px;
+  transition: background 0.3s ease;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.7);
+}
+
+::-webkit-scrollbar-thumb:active {
+  background: rgba(75, 85, 99, 0.8);
+}
+
+/* Firefox */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(156, 163, 175, 0.5) transparent;
 }
 </style>
